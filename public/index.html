@@ -6,9 +6,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RM Clínica">
-<meta name="application-name" content="RM Clínica">
-<meta name="theme-color" content="#16a34a">
+<meta name="apple-mobile-web-app-title" content="LS Impulsiona">
+<meta name="application-name" content="LS Impulsiona">
+<meta name="theme-color" content="#2563eb">
 <link rel="manifest" href="/manifest.json">
 <!-- iOS icons -->
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
@@ -23,8 +23,8 @@
 *{margin:0;padding:0;box-sizing:border-box}
 button, a, [onclick] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 :root{
-  --blue:#16a34a;--blue-light:#dcfce7;--blue-50:#bbf7d0;
-  --indigo:#16a34a;--indigo-dk:#15803d;--indigo-lt:#dcfce7;
+  --blue:#2563eb;--blue-light:#dbeafe;--blue-50:#bfdbfe;
+  --indigo:#2563eb;--indigo-dk:#1d4ed8;--indigo-lt:#dbeafe;
   --green:#10b981;--amber:#f59e0b;--orange:#f97316;--rose:#f43f5e;--purple:#8b5cf6;--emerald:#059669;
   --z50:#fafafa;--z100:#f4f4f5;--z200:#e4e4e7;--z300:#d4d4d8;
   --z400:#a1a1aa;--z500:#71717a;--z600:#52525b;--z700:#3f3f46;--z800:#27272a;--z900:#18181b;
@@ -34,7 +34,7 @@ body{font-family:'Inter',sans-serif;background:var(--z50);color:var(--z900);disp
 #sb{width:256px;background:#fff;border-right:1px solid var(--z200);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;height:calc(var(--vh,1vh)*100);height:100dvh;z-index:10}
 .sb-top{padding:20px 20px 12px}
 .sb-row{display:flex;align-items:center;gap:8px;margin-bottom:2px}
-.sb-ico{width:32px;height:32px;background:#16a34a;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+.sb-ico{width:32px;height:32px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(37,99,235,.3)}
 .sb-name{font-size:14px;font-weight:700;color:var(--z900)}
 .sb-plan{font-size:10px;color:var(--z400);font-weight:500;margin-left:40px}
 .nav{flex:1;padding:0 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;margin-top:4px}
@@ -85,7 +85,7 @@ body{font-family:'Inter',sans-serif;background:var(--z50);color:var(--z900);disp
 /* Botões */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s}
 .btn:active{transform:scale(.97)}
-.btn-primary{background:var(--indigo);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.25)}
+.btn-primary{background:var(--indigo);color:#fff;box-shadow:0 4px 12px rgba(37,99,235,.25)}
 .btn-primary:hover{background:var(--indigo-dk)}
 .btn-green{background:var(--green);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.2)}
 .btn-green:hover{filter:brightness(.92)}
@@ -95,7 +95,7 @@ body{font-family:'Inter',sans-serif;background:var(--z50);color:var(--z900);disp
 .btn-danger:hover{filter:brightness(.9)}
 /* Input */
 .inp{width:100%;padding:8px 12px;border:1px solid var(--z200);border-radius:10px;font-family:inherit;font-size:13px;color:var(--z900);outline:none;transition:all .2s;background:#fff}
-.inp:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(22,163,74,.1)}
+.inp:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .inp-ico{position:relative}
 .inp-ico svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--z400);pointer-events:none}
 .inp-ico input{padding-left:34px}
@@ -133,7 +133,7 @@ select.inp{cursor:pointer}
 .kcol-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
 .kcol-count{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;color:#fff}
 .kcol-body{min-height:80px;background:rgba(0,0,0,.02);border-radius:0 0 12px 12px;padding:8px;display:flex;flex-direction:column;gap:8px;transition:background .15s}
-.kcol-body.drag-over{background:rgba(22,163,74,.06);outline:2px dashed var(--indigo);outline-offset:-2px}
+.kcol-body.drag-over{background:rgba(37,99,235,.06);outline:2px dashed var(--indigo);outline-offset:-2px}
 .kcard{background:#fff;border-radius:12px;border:1px solid var(--z200);padding:10px 12px;cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.06);transition:all .15s}
 .kcard:active{cursor:grabbing;opacity:.5}
 .kcard:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-1px)}
@@ -384,8 +384,8 @@ select.inp{cursor:pointer}
   left:max(10px, env(safe-area-inset-left, 10px));
   z-index:300;
   width:44px;height:44px;border-radius:12px;
-  background:#16a34a;border:none;
-  box-shadow:0 2px 12px rgba(22,163,74,.35);
+  background:#2563eb;border:none;
+  box-shadow:0 2px 12px rgba(37,99,235,.35);
   align-items:center;justify-content:center;
   cursor:pointer;flex-direction:column;gap:5px;
   touch-action:manipulation;
@@ -630,7 +630,7 @@ select.inp{cursor:pointer}
 <div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#14532d,#16a34a,#15803d);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px">
   <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
     <div style="text-align:center;margin-bottom:24px">
-      <div style="width:52px;height:52px;background:#16a34a;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <div style="width:52px;height:52px;background:#2563eb;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
       <div style="font-size:20px;font-weight:900;color:#111">LS Impulsiona</div>
@@ -650,7 +650,7 @@ select.inp{cursor:pointer}
         style="width:100%;padding:13px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:16px;font-family:inherit;outline:none;background:#fff;color:#111;-webkit-appearance:none">
     </div>
     <button id="btnLogin" type="button"
-      style="width:100%;padding:15px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent">
+      style="width:100%;padding:15px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent">
       Entrar
     </button>
     <div style="text-align:center;margin-top:14px">
@@ -663,8 +663,15 @@ select.inp{cursor:pointer}
 <div id="sb">
   <div class="sb-top">
     <div class="sb-row">
-      <div class="sb-ico"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-      <span class="sb-name" id="sbName">Alliance CRM</span>
+      <div class="sb-ico" id="sbLogoBox" style="width:40px;height:40px;border-radius:10px;overflow:hidden;cursor:pointer;position:relative;" title="Clique para trocar a logo">
+        <img id="sbLogoImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;">
+        <span id="sbLogoText" style="color:#fff;font-size:13px;font-weight:900;letter-spacing:-0.5px;">LS</span>
+      </div>
+      <div>
+        <span class="sb-name" id="sbName">LS Impulsiona</span>
+        <div style="font-size:10px;color:var(--z400);font-weight:500;">Marketing Digital</div>
+      </div>
+      <input type="file" id="logoUpload" accept="image/*" style="display:none;" onchange="handleLogoUpload(event)">
     </div>
     <span class="sb-plan">Profissional</span>
   </div>
@@ -974,51 +981,7 @@ select.inp{cursor:pointer}
   </div>
   <div class="g3" id="wppGrid"></div>
 
-  <!-- Instagram Direct -->
-  <div class="card" style="margin-top:16px">
-    <div class="card-hdr">
-      <div>
-        <div class="card-title" style="display:flex;align-items:center;gap:8px">
-          <span style="font-size:18px">📸</span> Instagram Direct
-        </div>
-        <div class="card-sub">Receba e responda mensagens do Instagram no CRM</div>
-      </div>
-      <span id="instaStatus" style="background:#f4f4f5;color:#52525b;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700">Não conectado</span>
-    </div>
-    <div id="instaFormLogin" style="padding:20px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-        <div>
-          <label class="lbl">Token de Acesso</label>
-          <input type="password" id="instaToken" class="inp" placeholder="EAAxxxxxxxx..." style="font-family:monospace;font-size:12px">
-        </div>
-        <div>
-          <label class="lbl">Instagram Business Account ID</label>
-          <input type="text" id="instaAccId" class="inp" placeholder="17841400000000000" style="font-family:monospace;font-size:12px">
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <button class="btn btn-primary" style="background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);border:none" onclick="salvarConfigInsta()">
-          📸 Conectar Instagram
-        </button>
-        <button class="btn btn-ghost" onclick="testarInstaApi()">🧪 Testar</button>
-        <span style="font-size:11px;color:var(--z400)" id="instaLastSync"></span>
-      </div>
-      <div style="margin-top:10px;padding:10px 14px;background:#faf5ff;border-radius:10px;font-size:11px;color:#6b21a8;border-left:3px solid #8b5cf6">
-        📋 Não sabe como obter o Token? Abra o arquivo <strong>guia-instagram.html</strong> — passo a passo visual completo em 15 minutos.
-      </div>
-    </div>
-    <div id="instaConectado" style="padding:20px;display:none">
-      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#f0fdf4;border-radius:12px;border:1px solid #86efac">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);display:flex;align-items:center;justify-content:center;font-size:20px">📸</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:800;color:#166534" id="instaConnectedName">@conta</div>
-          <div style="font-size:11px;color:#15803d">Conectado — sincronizando a cada 30s</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="desconectarInstagram()" style="color:var(--rose);border-color:#fecdd3">Desconectar</button>
-        <button class="btn btn-ghost btn-sm" onclick="buscarMsgsInsta()">🔄 Sincronizar</button>
-      </div>
-    </div>
-  </div>
+  <!-- Instagram Direct - Desativado (usando apenas WhatsApp QR) -->
   <div class="card" style="margin-top:20px">
     <div class="card-hdr">
       <div>
@@ -5230,7 +5193,7 @@ function exportarPDF() {
     + '<title>Faturamento — LS Impulsiona</title>'
     + '<style>body{font-family:Arial,sans-serif;padding:32px;color:#1a1a1a}'
     + 'h1{font-size:22px;margin-bottom:4px}p{color:#666;margin:0 0 24px}'
-    + 'table{width:100%;border-collapse:collapse}th{background:#16a34a;color:#fff;padding:10px;text-align:left;font-size:12px}'
+    + 'table{width:100%;border-collapse:collapse}th{background:#2563eb;color:#fff;padding:10px;text-align:left;font-size:12px}'
     + 'td{padding:9px 10px;border-bottom:1px solid #eee;font-size:12px}'
     + 'tr:nth-child(even)td{background:#f9f9f9}'
     + '.total{margin-top:20px;text-align:right;font-size:18px;font-weight:bold;color:#16a34a}'
@@ -5283,7 +5246,7 @@ function _criarChart(canvas, chartData) {
         datasets: [{
           label: 'Leads',
           data: chartData.map(function(d){return d.count;}),
-          backgroundColor: 'rgba(22,163,74,0.7)',
+          backgroundColor: 'rgba(37,99,235,0.7)',
           borderColor: '#16a34a',
           borderWidth: 2,
           borderRadius: 6,
@@ -5393,7 +5356,7 @@ function abrirLandingPage() {
     + 'label{display:block;font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}'
     + 'input,select,textarea{width:100%;padding:12px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:15px;outline:none;font-family:inherit;margin-bottom:14px;transition:border-color .2s}'
     + 'input:focus,select:focus,textarea:focus{border-color:#16a34a}'
-    + 'button{width:100%;padding:14px;background:#16a34a;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer}'
+    + 'button{width:100%;padding:14px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer}'
     + '.success{display:none;text-align:center;padding:20px}'
     + '.success h2{color:#16a34a;font-size:22px;margin-bottom:8px}'
     + '</style></head><body>'
@@ -6447,6 +6410,36 @@ function instalarApp() {
     });
   }
 }
+
+// ── Logo Upload ──────────────────────────────────────────────────────────────
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = document.getElementById('sbLogoImg');
+    const txt = document.getElementById('sbLogoText');
+    if (img && txt) {
+      img.src = ev.target.result;
+      img.style.display = 'block';
+      txt.style.display = 'none';
+      localStorage.setItem('ls_logo', ev.target.result);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+document.addEventListener('DOMContentLoaded', function() {
+  // Restaurar logo salva
+  const savedLogo = localStorage.getItem('ls_logo');
+  if (savedLogo) {
+    const img = document.getElementById('sbLogoImg');
+    const txt = document.getElementById('sbLogoText');
+    if (img && txt) { img.src = savedLogo; img.style.display = 'block'; txt.style.display = 'none'; }
+  }
+  // Clique no logo para trocar
+  const logoBox = document.getElementById('sbLogoBox');
+  if (logoBox) logoBox.addEventListener('click', () => document.getElementById('logoUpload').click());
+});
 </script>
 
 <!-- Modal instruções iOS -->
@@ -6762,7 +6755,7 @@ function instalarApp() {
     </div>
     <div style="padding:14px 24px;border-top:1px solid var(--z100);display:flex;gap:8px;justify-content:flex-end">
       <button onclick="fecharEsqueciSenha()" style="padding:8px 16px;background:var(--z50);border:1px solid var(--z200);border-radius:10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;color:var(--z600)">Cancelar</button>
-      <button onclick="confirmarEsqueciSenha()" style="padding:8px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(22,163,74,.3)">🔑 Redefinir Senha</button>
+      <button onclick="confirmarEsqueciSenha()" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.3)">🔑 Redefinir Senha</button>
     </div>
   </div>
 </div>
