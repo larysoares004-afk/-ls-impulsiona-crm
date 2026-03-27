@@ -1,0 +1,107 @@
+name: Gerar APK Android (gratuito)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar build-tools e plataforma Android
+        run: |
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" --sdk_root=$ANDROID_HOME
+
+      - name: Gerar gradlew (wrapper)
+        working-directory: twa-android
+        run: |
+          # Baixar Gradle 8.4 para gerar o wrapper
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip -O gradle.zip
+          unzip -q gradle.zip
+          ./gradle-8.4/bin/gradle wrapper
+          chmod +x gradlew
+          ls -la
+
+      - name: Criar local.properties
+        working-directory: twa-android
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Gerar ícones do APK (logo Alliance)
+        run: |
+          sudo apt-get install -y imagemagick 2>/dev/null || true
+          SRC="public/icons/icon-512.png"
+          RES="twa-android/app/src/main/res"
+          echo "=== Verificando fonte ==="
+          ls -lh "$SRC" || { echo "ERRO: $SRC nao encontrado"; find . -name "icon-512.png" 2>/dev/null; exit 1; }
+          mkdir -p "$RES/mipmap-mdpi"    "$RES/mipmap-hdpi"
+          mkdir -p "$RES/mipmap-xhdpi"   "$RES/mipmap-xxhdpi"
+          mkdir -p "$RES/mipmap-xxxhdpi"
+          CONV=$(command -v magick || command -v convert)
+          echo "Usando: $CONV"
+          $CONV "$SRC" -resize 48x48   "$RES/mipmap-mdpi/ic_launcher.png"
+          $CONV "$SRC" -resize 72x72   "$RES/mipmap-hdpi/ic_launcher.png"
+          $CONV "$SRC" -resize 96x96   "$RES/mipmap-xhdpi/ic_launcher.png"
+          $CONV "$SRC" -resize 144x144 "$RES/mipmap-xxhdpi/ic_launcher.png"
+          $CONV "$SRC" -resize 192x192 "$RES/mipmap-xxxhdpi/ic_launcher.png"
+          echo "=== Ícones gerados ==="
+          ls -lh "$RES"/mipmap-*/ic_launcher.png
+
+      - name: Build APK (debug)
+        working-directory: twa-android
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee /tmp/gradle.log
+          echo "=== Build concluido ==="
+
+      - name: Mostrar log se falhou
+        if: failure()
+        run: tail -200 /tmp/gradle.log || true
+
+      - name: Localizar e mover APK
+        run: |
+          echo "=== Procurando APKs ==="
+          find . -name "*.apk" 2>/dev/null || echo "nenhum apk"
+          APK=$(find twa-android -name "*.apk" | head -1)
+          if [ -n "$APK" ]; then
+            cp "$APK" GrupoRM-Clinica.apk
+            echo "APK: $(du -h GrupoRM-Clinica.apk)"
+          else
+            echo "ERRO: APK nao encontrado"
+            exit 1
+          fi
+
+      - name: Upload APK (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: GrupoRM-Clinica-App
+          path: GrupoRM-Clinica.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publicar Release pública (link direto de download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: "Grupo RM Clínica — App Android"
+          body: "APK mais recente gerado automaticamente. Baixe e instale no Android."
+          files: GrupoRM-Clinica.apk
+          make_latest: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
