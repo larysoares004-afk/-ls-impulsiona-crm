@@ -390,6 +390,125 @@ Body:
 
 ---
 
+## 📊 Dashboard v2 Endpoints (NEW)
+
+### GET /api/dashboard/resumo
+Retorna resumo geral com metas e KPIs
+
+**Response:**
+```json
+{
+  "meta_dia": { "valor": 5000, "realizado": 3200, "pct": 64 },
+  "meta_semana": { "valor": 35000, "realizado": 18500, "pct": 53 },
+  "meta_mes": { "valor": 150000, "realizado": 92000, "pct": 61 },
+  "conversoes_hoje": 45,
+  "taxa_conversao": 85,
+  "ticket_medio": 850,
+  "leads_pendentes": 12
+}
+```
+
+### GET /api/dashboard/ranking-atendentes?periodo=mes
+TOP 10 atendentes por pontos (dia|semana|mes|tudo)
+
+**Response:**
+```json
+[
+  { "posicao": 1, "id": 2, "nome": "João Silva", "pontos": 47, "vendas": 10, "valor_total": 8500 },
+  { "posicao": 2, "id": 3, "nome": "Maria Santos", "pontos": 42, "vendas": 9, "valor_total": 7800 }
+]
+```
+
+### GET /api/dashboard/grafico-conversoes
+Dados para gráfico (últimos 7 dias)
+
+### GET /api/dashboard/metas
+Status de metas (dia/semana/mês)
+
+---
+
+## 💳 Pagamentos Endpoints (NEW)
+
+### GET /api/pagamentos
+Listar todos os pagamentos
+
+### POST /api/pagamentos
+Registrar pagamento de venda
+```json
+{ "venda_id": 123, "data_pagamento": "2026-03-27", "forma_pagamento": "PIX" }
+```
+
+### PUT /api/pagamentos/:id
+Atualizar data de entrega de vídeo
+```json
+{ "data_entrega_video": "2026-03-30" }
+```
+
+---
+
+## 🎥 Vídeos Endpoints (NEW)
+
+### GET /api/videos
+Listar vídeos
+
+### POST /api/videos/enviar
+Enviar vídeo e notificar cliente
+```json
+{ "venda_id": 123, "data_entrega": "2026-03-30", "tipo": "Padrão" }
+```
+
+---
+
+## 👥 Indicações Endpoints (NEW)
+
+### GET /api/indicacoes
+Listar indicações
+
+### POST /api/indicacoes
+Registrar nova indicação
+```json
+{
+  "venda_id_indicador": 123,
+  "novo_cliente_nome": "João Silva",
+  "novo_cliente_tel": "71981234567"
+}
+```
+
+---
+
+## 🎯 Metas Globais Endpoints (NEW)
+
+### GET /api/metas-globais
+Listar metas da empresa
+
+### POST /api/metas-globais
+Criar meta (admin/gestor)
+```json
+{ "periodo": "diaria|semanal|mensal", "valor_meta": 5000, "mes_ano": "2026-03-27" }
+```
+
+### PUT /api/metas-globais/:id
+Atualizar meta
+
+---
+
+## 📅 Calendário Endpoint (NEW)
+
+### GET /api/calendario
+Eventos de pagamentos e vídeos
+
+---
+
+## 📈 Relatórios Endpoints (NEW)
+
+### GET /api/relatorios/vendas-csv?periodo=mes
+Export vendas em CSV
+
+### GET /api/relatorios/desempenho
+Relatório de desempenho de atendentes
+
+---
+
 ## ⚠️ Status Codes
 
 | Code | Meaning |

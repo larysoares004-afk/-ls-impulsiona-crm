@@ -269,6 +269,112 @@ ORDER BY data DESC;
 
 ---
 
+## 💳 TABELA: pagamentos (NEW - Dashboard v2)
+
+Rastrear pagamentos e entrega de vídeos
+
+```sql
+CREATE TABLE pagamentos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id INTEGER UNIQUE,
+  cliente_nome TEXT,
+  valor REAL,
+  data_pagamento DATE,
+  forma_pagamento TEXT,
+  data_entrega_video DATE,
+  status TEXT DEFAULT 'AGUARDANDO',
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+);
+```
+
+---
+
+## 🎥 TABELA: videos (NEW - Dashboard v2)
+
+Rastrear vídeos entregues
+
+```sql
+CREATE TABLE videos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id INTEGER,
+  cliente_nome TEXT,
+  tipo TEXT,
+  url TEXT,
+  data_entrega DATE,
+  status TEXT DEFAULT 'ENVIADO',
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+);
+```
+
+---
+
+## 👥 TABELA: indicacoes (NEW - Dashboard v2)
+
+Rastrear indicações (cliente indica outro)
+
+```sql
+CREATE TABLE indicacoes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id_indicador INTEGER,
+  novo_cliente_nome TEXT,
+  novo_cliente_tel TEXT,
+  status TEXT DEFAULT 'LEAD',
+  data_conversao DATE,
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(venda_id_indicador) REFERENCES vendas(id)
+);
+```
+
+---
+
+## 🏆 TABELA: pontuacao_atendentes (NEW - Dashboard v2)
+
+Pontuação automática de atendentes baseada em vendas
+
+```sql
+CREATE TABLE pontuacao_atendentes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id INTEGER,
+  venda_id INTEGER,
+  pontos INTEGER,
+  faixa_valor TEXT,  -- '1-399', '400-600', etc
+  data DATE,
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+);
+```
+
+**Sistema de Pontuação:**
+- R$ 1-399: 1 ponto
+- R$ 400-600: 3 pontos
+- R$ 601-800: 4 pontos
+- R$ 801-1000: 5 pontos
+- R$ 1001-1500: 6 pontos
+- R$ 1501+: 7 pontos
+
+---
+
+## 🎯 TABELA: metas_globais (NEW - Dashboard v2)
+
+Metas globais da empresa (dia/semana/mês)
+
+```sql
+CREATE TABLE metas_globais (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  periodo TEXT,  -- 'diaria', 'semanal', 'mensal'
+  tipo TEXT,
+  valor_meta REAL,
+  valor_realizado REAL DEFAULT 0,
+  mes_ano DATE,
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
 ## 🔐 Índices para Performance
 
 ```sql
