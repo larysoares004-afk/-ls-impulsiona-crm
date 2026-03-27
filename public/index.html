@@ -1576,17 +1576,17 @@ select.inp{cursor:pointer}
 
 const PERMISSOES = {
   // Admin — acesso total
-  admin:    ['dashboard','leads','agenda','faturamento','setores','servicos','chat','whatsapp','atendimentos','novo','config','usuarios'],
+  admin:    ['dashboard','leads','faturamento','setores','servicos','whatsapp','config','usuarios','que-chegou','se-converteu','videos','ranking'],
   // Gestor — acesso total igual ao admin
-  gestor:   ['dashboard','leads','agenda','faturamento','setores','servicos','chat','whatsapp','atendimentos','novo','config','usuarios'],
-  // Gerente de loja — tudo menos preços/faturamento
-  gerente:  ['dashboard','leads','agenda','setores','servicos','chat','whatsapp','atendimentos','novo','config'],
-  // Atendente — Dashboard, Leads, Chat Interno, Atendimentos
-  atendente:['dashboard','leads','chat','atendimentos'],
-  // Vendedor — Dashboard, Chat Interno, Atendimentos (só transferências)
-  vendedor: ['dashboard','chat','atendimentos'],
-  // Optometrista — Agenda, Chat, Atendimentos
-  optometrista:['dashboard','agenda','chat','atendimentos'],
+  gestor:   ['dashboard','leads','faturamento','setores','servicos','whatsapp','config','usuarios','que-chegou','se-converteu','videos','ranking'],
+  // Gerente — tudo menos faturamento
+  gerente:  ['dashboard','leads','setores','servicos','whatsapp','config','que-chegou','se-converteu','videos','ranking'],
+  // Atendente — Dashboard, Leads, WhatsApp
+  atendente:['dashboard','leads','whatsapp','que-chegou','se-converteu','videos'],
+  // Vendedor — Dashboard, Leads, WhatsApp, Ranking
+  vendedor: ['dashboard','leads','whatsapp','que-chegou','se-converteu','videos','ranking'],
+  // Colaborador — acesso básico
+  colaborador:['dashboard','leads','whatsapp','que-chegou','se-converteu'],
 };
 
 let currentUser = null;
@@ -5035,11 +5035,11 @@ function toggleAddSenha(){
 
 function atualizarDescricaoRole(role){
   const desc = {
-    atendente:    'Dashboard, Leads, Chat Interno, Atendimentos',
-    vendedor:     'Dashboard, Chat Interno, Atendimentos (só transferências)',
-    gerente:      'Tudo menos Preços / Faturamento',
+    atendente:    'Dashboard, Leads, WhatsApp, Que chegou, Vídeos',
+    vendedor:     'Dashboard, Leads, WhatsApp, Ranking',
+    gerente:      'Tudo menos Faturamento',
     gestor:       'Acesso total igual ao Admin',
-    optometrista: 'Dashboard, Agenda, Chat Interno, Atendimentos',
+    colaborador:  'Dashboard, Leads, WhatsApp, Que chegou',
     admin:        'Acesso total ao sistema',
   };
   const el = document.getElementById('roleDesc');
@@ -6600,12 +6600,12 @@ document.addEventListener('DOMContentLoaded', function() {
           <select id="addUserRole" class="inp" onchange="atualizarDescricaoRole(this.value)">
             <option value="atendente">Atendente</option>
             <option value="vendedor">Vendedor</option>
-            <option value="gerente">Gerente de Loja</option>
+            <option value="gerente">Gerente</option>
             <option value="gestor">Gestor</option>
-            <option value="optometrista">Optometrista</option>
+            <option value="colaborador">Colaborador</option>
             <option value="admin">Admin (acesso total)</option>
           </select>
-          <div id="roleDesc" style="font-size:10px;color:#64748b;margin-top:3px">Dashboard, Leads, Chat, Atendimentos</div>
+          <div id="roleDesc" style="font-size:10px;color:#64748b;margin-top:3px">Dashboard, Leads, WhatsApp, Que chegou, Vídeos</div>
         </div>
       </div>
 
@@ -6613,10 +6613,10 @@ document.addEventListener('DOMContentLoaded', function() {
       <div>
         <label class="lbl">Setor</label>
         <select id="addUserSetor" class="inp">
-          <option value="recepcao">🏥 Recepção / Atendimento</option>
+          <option value="atendimento">📱 Atendimento</option>
           <option value="vendas">💼 Vendas</option>
           <option value="financeiro">💰 Financeiro</option>
-          <option value="exames">👁️ Exames / Optometria</option>
+          <option value="marketing">📣 Marketing</option>
           <option value="gestao">⚙️ Gestão / Admin</option>
         </select>
       </div>
@@ -6662,9 +6662,9 @@ document.addEventListener('DOMContentLoaded', function() {
           <select id="euRole" class="inp">
             <option value="atendente">Atendente</option>
             <option value="vendedor">Vendedor</option>
-            <option value="gerente">Gerente de Loja</option>
+            <option value="gerente">Gerente</option>
             <option value="gestor">Gestor</option>
-            <option value="optometrista">Optometrista</option>
+            <option value="colaborador">Colaborador</option>
             <option value="admin">Admin</option>
           </select>
         </div>
