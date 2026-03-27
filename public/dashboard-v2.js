@@ -34,11 +34,11 @@ async function renderDashboardV2() {
       </div>
 
       <div class="scard">
-        <div class="scard-ico" style="background: #dcfce7; color: #16a34a;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+        <div class="scard-ico" style="background: #dbeafe; color: #2563eb;"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="scard-val">R$ ${fmt(data.meta_mes.realizado)}</div>
         <div class="scard-lbl">Meta Mensal: ${data.meta_mes.pct}%</div>
         <div style="margin-top: 8px; width: 100%; height: 4px; background: #bbf7d0; border-radius: 2px; overflow: hidden;">
-          <div style="height: 100%; width: ${Math.min(data.meta_mes.pct, 100)}%; background: #16a34a;"></div>
+          <div style="height: 100%; width: ${Math.min(data.meta_mes.pct, 100)}%; background: #2563eb;"></div>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ async function renderDashboardV2() {
               {
                 label: 'Vendas',
                 data: conv.map(c => c.vendas),
-                borderColor: '#16a34a',
+                borderColor: '#2563eb',
                 backgroundColor: 'rgba(22, 163, 74, 0.1)',
                 tension: 0.4
               },
@@ -105,7 +105,7 @@ async function renderDashboardV2() {
             <div style="width: 32px; height: 32px; border-radius: 50%; background: ${['#fbbf24', '#d1d5db', '#f97316', '#93c5fd', '#c4b5fd'][idx] || '#e5e7eb'}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${idx+1}º</div>
             <div style="font-size: 12px; font-weight: 600;">${r.nome}</div>
           </div>
-          <div style="font-size: 14px; font-weight: 700; color: #16a34a;">${r.pontos} pts</div>
+          <div style="font-size: 14px; font-weight: 700; color: #2563eb;">${r.pontos} pts</div>
         </div>
       `).join('');
     }, 100);
@@ -121,15 +121,23 @@ async function renderQueChegou() {
     const res = await fetch('/api/leads', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
     const leads = await res.json();
 
+    const totalLeads = leads.length;
     const html = `
     <div class="ph">
-      <div><h1 class="ptitle">📞 Que chegou</h1></div>
+      <div>
+        <h1 class="ptitle">📞 Que Chegou</h1>
+        <div class="psub">Total de leads: <strong style="color:var(--blue)">${totalLeads}</strong></div>
+      </div>
       <div style="display: flex; gap: 8px;">
         <select id="filtroStatus" onchange="renderQueChegou()" class="inp" style="max-width: 150px;">
           <option value="">Todos</option>
-          <option value="LEAD">Lead</option>
-          <option value="AGENDADO">Agendado</option>
-          <option value="CONVERTEU">Convertido</option>
+          <option value="CHEGOU">Chegou</option>
+          <option value="CONVERTEU">Converteu</option>
+          <option value="NÃO CONVERTEU">Não Converteu</option>
+          <option value="FOLLOW-UP 1">Follow-up 1</option>
+          <option value="FOLLOW-UP 2">Follow-up 2</option>
+          <option value="FOLLOW-UP 3">Follow-up 3</option>
+          <option value="INDICAÇÃO">Indicação</option>
         </select>
       </div>
     </div>
@@ -162,7 +170,7 @@ async function renderQueChegou() {
           <td style="padding: 12px; font-size: 13px;">${fmtPhone(l.telefone)}</td>
           <td style="padding: 12px; font-size: 13px;">R$ ${fmt(l.valor)}</td>
           <td style="padding: 12px; font-size: 13px;">
-            <span style="padding: 3px 8px; border-radius: 6px; background: ${l.status === 'CONVERTEU' ? '#dcfce7' : l.status === 'AGENDADO' ? '#fef3c7' : '#f3f4f6'}; color: ${l.status === 'CONVERTEU' ? '#16a34a' : l.status === 'AGENDADO' ? '#f59e0b' : '#6b7280'}; font-size: 11px; font-weight: 600;">${l.status}</span>
+            <span style="padding: 3px 8px; border-radius: 6px; background: ${STATUS_BG[l.status]||'#f3f4f6'}; color: ${STATUS_COLORS[l.status]||'#6b7280'}; font-size: 11px; font-weight: 600;">${l.status}</span>
           </td>
           <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${fmtDate(l.criado_em)}</td>
         </tr>
@@ -208,7 +216,7 @@ async function renderSeConverteu() {
       document.getElementById('tabelaVendas').innerHTML = vendas.map(v => `
         <tr style="border-top: 1px solid #f3f4f6;">
           <td style="padding: 12px; font-size: 13px;">${v.cliente_nome}</td>
-          <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #16a34a;">R$ ${fmt(v.valor)}</td>
+          <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #2563eb;">R$ ${fmt(v.valor)}</td>
           <td style="padding: 12px; font-size: 13px;">${v.pagamento}</td>
           <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${fmtDate(v.criado_em)}</td>
           <td style="padding: 12px; font-size: 12px;">
@@ -314,9 +322,9 @@ async function renderRanking() {
           <thead style="background: #f9fafb;">
             <tr>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Posição</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Nome</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Atendente</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Vendas</th>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Pontos</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Valor Total</th>
             </tr>
           </thead>
           <tbody id="tabelaRanking"></tbody>
@@ -339,8 +347,8 @@ async function renderRanking() {
             <span style="padding: 4px 10px; border-radius: 6px; background: ${['#fbbf24', '#d1d5db', '#f97316', '#93c5fd', '#c4b5fd'][idx] || '#e5e7eb'}; color: #fff; font-weight: 700; font-size: 11px;">${idx+1}º</span>
           </td>
           <td style="padding: 12px; font-size: 13px; font-weight: 600;">${r.nome}</td>
-          <td style="padding: 12px; font-size: 13px; font-weight: 700; color: #16a34a;">${r.pontos} pts</td>
-          <td style="padding: 12px; font-size: 13px; color: #0284c7;">R$ ${fmt(r.valor_total)}</td>
+          <td style="padding: 12px; font-size: 13px; color: #0284c7;">${r.vendas || r.total_vendas || 0}</td>
+          <td style="padding: 12px; font-size: 13px; font-weight: 700; color: #2563eb;">${r.pontos} pts</td>
         </tr>
       `).join('');
 
@@ -352,7 +360,7 @@ async function renderRanking() {
             datasets: [{
               label: 'Pontos',
               data: ranking.slice(0, 10).map(r => r.pontos),
-              backgroundColor: '#16a34a'
+              backgroundColor: '#2563eb'
             }]
           },
           options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } } }

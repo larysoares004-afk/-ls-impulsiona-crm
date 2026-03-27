@@ -627,7 +627,7 @@ select.inp{cursor:pointer}
 
 <!-- SIDEBAR -->
 <!-- ═══ TELA DE LOGIN ═══════════════════════════════════════════════ -->
-<div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#14532d,#16a34a,#15803d);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px">
+<div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a8a,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px">
   <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.3)">
     <div style="text-align:center;margin-bottom:24px">
       <div style="width:52px;height:52px;background:#2563eb;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
@@ -700,7 +700,7 @@ select.inp{cursor:pointer}
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
       <span>Serviços</span>
     </button>
-    <button class="nb" onclick="goTo('chat')" id="nb-chat">
+    <button class="nb" onclick="goTo('chat')" id="nb-chat" style="display:none">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a2 2 0 0 1-2-2v-1"/><path d="M15 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l4-4h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
       <span>Chat Interno</span><span class="nb-badge" id="chatBadge" style="display:none">0</span>
     </button>
@@ -744,7 +744,7 @@ select.inp{cursor:pointer}
   </nav>
   <div class="sb-bot">
     <!-- Botão instalar app (PWA) -->
-    <button id="btnInstalarApp" onclick="instalarApp()" style="display:none;width:100%;margin-bottom:6px;padding:10px 14px;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
+    <button id="btnInstalarApp" onclick="instalarApp()" style="display:none;width:100%;margin-bottom:6px;padding:10px 14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Instalar App
     </button>
@@ -963,9 +963,9 @@ select.inp{cursor:pointer}
 </div>
 
 <!-- ═══════════════════════ CHAT INTERNO ══════════════════════════ -->
-<div class="view" id="view-chat">
+<div class="view" id="view-chat" style="display:none!important">
   <div class="ph">
-    <div><div class="ptitle">Chat Interno</div><div class="psub">Comunicação entre setores da Alliance Optometria</div></div>
+    <div><div class="ptitle">Chat Interno</div><div class="psub">Comunicação entre setores da LS Impulsiona</div></div>
   </div>
   <div id="chatLayout" style="display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 160px);background:#fff;border-radius:var(--r);border:1px solid var(--z100);overflow:hidden;box-shadow:var(--sh)"></div>
 </div>
@@ -1006,7 +1006,7 @@ select.inp{cursor:pointer}
       <div style="display:grid;gap:14px">
         <div>
           <label class="lbl">Nome da conta</label>
-          <input type="text" id="novaContaNome" class="inp" placeholder="Ex: Alliance Optometria BA">
+          <input type="text" id="novaContaNome" class="inp" placeholder="Ex: LS Impulsiona BA">
         </div>
         <div>
           <label class="lbl">Token de Acesso (EAAx...)</label>
@@ -1375,7 +1375,7 @@ select.inp{cursor:pointer}
       <div><label class="lbl">Nome</label><input type="text" class="inp" id="elNome"></div>
       <div><label class="lbl">Telefone</label><input type="text" class="inp" id="elTel"></div>
       <div><label class="lbl">Status</label>
-        <select class="inp" id="elStatus"><option>LEAD</option><option>AGENDADO</option><option>NÃO COMPARECEU</option><option>CONVERTEU</option><option>FOLLOW-UP 1</option><option>FOLLOW-UP 2</option><option>FOLLOW-UP 3</option><option>NÃO INTERAGIU</option></select></div>
+        <select class="inp" id="elStatus"><option>CHEGOU</option><option>CONVERTEU</option><option>NÃO CONVERTEU</option><option>FOLLOW-UP 1</option><option>FOLLOW-UP 2</option><option>FOLLOW-UP 3</option><option>INDICAÇÃO</option></select></div>
       <div><label class="lbl">Origem</label>
         <select class="inp" id="elOrigem"><option>WhatsApp</option><option>Meta Ads</option><option>Google Ads</option><option>Landing Page</option><option>Indicação</option><option>Manual</option></select></div>
       <div><label class="lbl">Motivo</label><input type="text" class="inp" id="elMotivo"></div>
@@ -1697,21 +1697,21 @@ function _executarLogin() {
 
   function erro(msg) {
     if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
-    if (btn)   { btn.textContent = 'Entrar'; btn.style.background = '#16a34a'; }
+    if (btn)   { btn.textContent = 'Entrar'; btn.style.background = '#2563eb'; }
     setTimeout(function(){ if (errEl) errEl.style.display = 'none'; }, 4000);
   }
 
   if (!usuario) { erro('Preencha o usuário'); return; }
   if (!senha)   { erro('Preencha a senha'); return; }
 
-  if (btn) { btn.textContent = '...'; btn.style.background = '#15803d'; }
+  if (btn) { btn.textContent = '...'; btn.style.background = '#1d4ed8'; }
   if (errEl) errEl.style.display = 'none';
 
   // 1. Login offline — imediato, sem rede
   var u = loginOffline(usuario, senha);
   if (u) {
     entrarComUser(u, true);
-    if (btn) { btn.textContent = 'Entrar'; btn.style.background = '#16a34a'; }
+    if (btn) { btn.textContent = 'Entrar'; btn.style.background = '#2563eb'; }
 
     // Inicia o sistema imediatamente com dados offline
     try { iniciarSistema(); } catch(e) { console.error(e); }
@@ -1766,7 +1766,7 @@ function _executarLogin() {
       usuario: currentUser.usuario, expira: Date.now()+8*3600*1000, offline:false, token: res.d.token || null
     }));
     entrarComUser(currentUser, false);
-    if (btn) { btn.textContent = 'Entrar'; btn.style.background = '#16a34a'; }
+    if (btn) { btn.textContent = 'Entrar'; btn.style.background = '#2563eb'; }
     try { sincronizarDados().then(function(){ iniciarSistema(); }).catch(function(){ iniciarSistema(); }); }
     catch(e) { iniciarSistema(); }
   })
@@ -2024,28 +2024,31 @@ const SHEETS = 'https://script.google.com/macros/s/AKfycbzMbgGVgPbLBvDjtRO9o-D5M
 const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#f97316','#ec4899','#06b6d4'];
 const TIMES = Array.from({length:17},(_,i)=>`${String(8+i).padStart(2,'0')}:00`);
 const SOURCE_COLORS = {'WhatsApp':'#25D366','Meta Ads':'#1877F2','Google Ads':'#EA4335','Landing Page':'#6366f1','Indicação':'#f59e0b','Manual':'#71717a'};
-const STATUS_COLORS = {'LEAD':'#16a34a','AGENDADO':'#8b5cf6','NÃO COMPARECEU':'#f43f5e','CONVERTEU':'#10b981','FOLLOW-UP 1':'#f59e0b','FOLLOW-UP 2':'#f97316','FOLLOW-UP 3':'#dc2626','NÃO INTERAGIU':'#71717a'};
-const STATUS_BG = {'LEAD':'#dcfce7','AGENDADO':'#ede9fe','NÃO COMPARECEU':'#fff1f2','CONVERTEU':'#d1fae5','FOLLOW-UP 1':'#fffbeb','FOLLOW-UP 2':'#fff7ed','FOLLOW-UP 3':'#fee2e2','NÃO INTERAGIU':'#f4f4f5'};
+const STATUS_COLORS = {'CHEGOU':'#2563eb','CONVERTEU':'#10b981','NÃO CONVERTEU':'#f43f5e','FOLLOW-UP 1':'#f97316','FOLLOW-UP 2':'#f59e0b','FOLLOW-UP 3':'#8b5cf6','INDICAÇÃO':'#0d9488'};
+const STATUS_BG = {'CHEGOU':'#dbeafe','CONVERTEU':'#d1fae5','NÃO CONVERTEU':'#fff1f2','FOLLOW-UP 1':'#fff7ed','FOLLOW-UP 2':'#fffbeb','FOLLOW-UP 3':'#ede9fe','INDICAÇÃO':'#ccfbf1'};
 const PAY_COLORS = {'Cartão de Crédito':'#3b82f6','PIX':'#10b981','Dinheiro':'#f59e0b','Boleto':'#6366f1','Transferência':'#ec4899'};
 const LS_KEY = 'crm_omnicanal_v4';
 
 // ══════════════════════════ ESTADO + PERSISTÊNCIA ════════════════════════════
 const DEFAULT_STATE = {
   customers: [
-    {id:'c1',name:'João Silva',phone:'(11) 98765-4321',source:'WhatsApp',status:'LEAD',createdAt:new Date().toISOString(),serviceValue:19.90,os:'1001',reasonForExam:'Check-up da visão',needsGlasses:false},
-    {id:'c2',name:'Maria Oliveira',phone:'(11) 91234-5678',source:'Meta Ads',status:'CONVERTEU',createdAt:new Date().toISOString(),serviceValue:49.90,os:'1002',reasonForExam:'Renovar óculos',needsGlasses:true},
-    {id:'c3',name:'Pedro Santos',phone:'(11) 99887-7665',source:'Google Ads',status:'FOLLOW-UP 1',createdAt:new Date().toISOString(),serviceValue:19.90,os:'1003',reasonForExam:''},
-    {id:'c4',name:'Ana Costa',phone:'(11) 97766-5544',source:'Landing Page',status:'FOLLOW-UP 2',createdAt:new Date().toISOString(),serviceValue:129.90,os:'1004',reasonForExam:''},
-    {id:'c5',name:'Carlos Lima',phone:'(11) 96655-4433',source:'Indicação',status:'LEAD',createdAt:new Date().toISOString(),serviceValue:19.90,os:'1005',reasonForExam:''},
+    {id:'c1',name:'João Silva',phone:'(11) 98765-4321',source:'WhatsApp',status:'CHEGOU',createdAt:new Date().toISOString(),serviceValue:0,os:'1001',reasonForExam:''},
+    {id:'c2',name:'Maria Oliveira',phone:'(11) 91234-5678',source:'Meta Ads',status:'CONVERTEU',createdAt:new Date().toISOString(),serviceValue:1500,os:'1002',reasonForExam:''},
+    {id:'c3',name:'Pedro Santos',phone:'(11) 99887-7665',source:'Google Ads',status:'FOLLOW-UP 1',createdAt:new Date().toISOString(),serviceValue:0,os:'1003',reasonForExam:''},
+    {id:'c4',name:'Ana Costa',phone:'(11) 97766-5544',source:'Landing Page',status:'FOLLOW-UP 2',createdAt:new Date().toISOString(),serviceValue:0,os:'1004',reasonForExam:''},
+    {id:'c5',name:'Carlos Lima',phone:'(11) 96655-4433',source:'Indicação',status:'CHEGOU',createdAt:new Date().toISOString(),serviceValue:0,os:'1005',reasonForExam:''},
   ],
   sales: [
     {id:'sl1',customerId:'c2',customerName:'Maria Oliveira',amount:49.90,paymentMethod:'PIX',date:new Date().toISOString(),serviceName:'Consulta Lentes',type:'Venda'},
   ],
   services: [
-    {id:'s1',name:'Exame de Vista',duration:30,price:19.90,color:'#3b82f6',description:'Exame completo de acuidade visual'},
-    {id:'s2',name:'Consulta Lentes',duration:45,price:49.90,color:'#10b981',description:'Consulta e adaptação de lentes'},
-    {id:'s3',name:'Ajuste de Armação',duration:15,price:0,color:'#f59e0b',description:'Ajuste e manutenção de armações'},
-    {id:'s4',name:'Troca de Lentes',duration:60,price:129.90,color:'#8b5cf6',description:'Troca de lentes para armação existente'},
+    {id:'s1',name:'Pacote 4 Vídeos Persuasivos',duration:30,price:0,color:'#2563eb',description:'Pacote com 4 vídeos persuasivos para marketing'},
+    {id:'s2',name:'Pacote 5 Vídeos Persuasivos',duration:30,price:0,color:'#3b82f6',description:'Pacote com 5 vídeos persuasivos para marketing'},
+    {id:'s3',name:'Pacote 6 Vídeos Persuasivos',duration:30,price:0,color:'#6366f1',description:'Pacote com 6 vídeos persuasivos para marketing'},
+    {id:'s4',name:'Pacote 7 Vídeos Persuasivos',duration:30,price:0,color:'#8b5cf6',description:'Pacote com 7 vídeos persuasivos para marketing'},
+    {id:'s5',name:'Tráfego Pago',duration:30,price:0,color:'#f97316',description:'Gestão de tráfego pago e anúncios'},
+    {id:'s6',name:'Automação',duration:30,price:0,color:'#10b981',description:'Automação de marketing e processos'},
+    {id:'s7',name:'Social Mídia',duration:30,price:0,color:'#f59e0b',description:'Gestão de redes sociais'},
   ],
   appointments: [
     {id:'ap1',customerId:'c1',customerName:'João Silva',customerPhone:'(11) 98765-4321',serviceId:'s1',serviceName:'Exame de Vista',date:new Date().toISOString().split('T')[0],time:'09:00',status:'scheduled'},
@@ -2495,7 +2498,7 @@ function renderDashboard() {
       </div>`).join('');
 
   // Pipeline
-  const cols=[{id:'LEAD',label:'Leads'},{id:'AGENDADO',label:'Agendado'},{id:'NÃO COMPARECEU',label:'Não Compareceu'},{id:'CONVERTEU',label:'Converteu'},{id:'FOLLOW-UP 1',label:'Follow-up 1'},{id:'FOLLOW-UP 2',label:'Follow-up 2'},{id:'FOLLOW-UP 3',label:'Follow-up 3'},{id:'NÃO INTERAGIU',label:'Não Interagiu'}];
+  const cols=[{id:'CHEGOU',label:'Chegou'},{id:'CONVERTEU',label:'Converteu'},{id:'NÃO CONVERTEU',label:'Não Converteu'},{id:'FOLLOW-UP 1',label:'Follow-up 1'},{id:'FOLLOW-UP 2',label:'Follow-up 2'},{id:'FOLLOW-UP 3',label:'Follow-up 3'},{id:'INDICAÇÃO',label:'Indicação'}];
   const pipeEl = document.getElementById('dashPipeline');
   if(pipeEl) pipeEl.innerHTML=cols.map(col=>{
     const cnt=cs.filter(c=>c.status===col.id).length;
@@ -2559,12 +2562,11 @@ function updateHeader() {
 
 // ══════════════════════════ KANBAN ═══════════════════════════════════════════
 const COLS=[
-  {id:'LEAD',title:'Leads'},
-  {id:'AGENDADO',title:'Agendado'},
-  {id:'NÃO COMPARECEU',title:'Não Compareceu'},
+  {id:'CHEGOU',title:'Chegou'},
   {id:'CONVERTEU',title:'Converteu'},
+  {id:'NÃO CONVERTEU',title:'Não Converteu'},
   {id:'FOLLOW-UP 1',title:'Follow-up 1'},{id:'FOLLOW-UP 2',title:'Follow-up 2'},{id:'FOLLOW-UP 3',title:'Follow-up 3'},
-  {id:'NÃO INTERAGIU',title:'Não Interagiu'},
+  {id:'INDICAÇÃO',title:'Indicação'},
 ];
 
 function renderKanban(){
@@ -4174,7 +4176,7 @@ function openChat(id, name, phone, accountName=''){
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="abrirTransferModal('${name}')">↗️ Transferir</button>
-        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;background:#ecfdf5;color:#059669;border-color:#86efac" onclick="confirmarPagamentoRapido('${id}','${name}')">💰 Confirmar Pagamento</button>
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;background:#ecfdf5;color:#059669;border-color:#93c5fd" onclick="confirmarPagamentoRapido('${id}','${name}')">💰 Confirmar Pagamento</button>
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="finalizeChat()">✅ Finalizar</button>
         <a href="https://wa.me/55${fone}" target="_blank" class="btn btn-green" style="font-size:11px;padding:5px 10px;text-decoration:none">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a5.07 5.07 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
@@ -4601,7 +4603,7 @@ function renderConfig(){
       <div style="padding:20px;display:flex;flex-direction:column;gap:20px">
 
         <!-- STATUS -->
-        <div id="n8nStatus" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;font-size:13px;color:#166534">
+        <div id="n8nStatus" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af">
           ⚙️ Carregando configuração...
         </div>
 
@@ -4696,9 +4698,9 @@ function renderConfig(){
       document.getElementById('n8nStatus').innerHTML = cfg2 && cfg2.token
         ? '✅ IA configurada e pronta para receber mensagens!'
         : '⚙️ Token de segurança não configurado ainda. Preencha abaixo.';
-      document.getElementById('n8nStatus').style.background = cfg2 && cfg2.token ? '#f0fdf4' : '#fef9c3';
-      document.getElementById('n8nStatus').style.color = cfg2 && cfg2.token ? '#166534' : '#713f12';
-      document.getElementById('n8nStatus').style.borderColor = cfg2 && cfg2.token ? '#bbf7d0' : '#fde047';
+      document.getElementById('n8nStatus').style.background = cfg2 && cfg2.token ? '#eff6ff' : '#fef9c3';
+      document.getElementById('n8nStatus').style.color = cfg2 && cfg2.token ? '#1e40af' : '#713f12';
+      document.getElementById('n8nStatus').style.borderColor = cfg2 && cfg2.token ? '#bfdbfe' : '#fde047';
     }).catch(()=>{
       document.getElementById('n8nStatus').innerHTML = '⚙️ Configure o token abaixo para ativar a IA.';
     });
@@ -4730,7 +4732,7 @@ async function salvarN8NToken(){
     await api('PUT','/api/config/n8n',{token});
     if(document.getElementById('tokenExibir')) document.getElementById('tokenExibir').textContent=token;
     const st=document.getElementById('n8nStatus');
-    if(st){st.innerHTML='✅ Token salvo! A IA está pronta para receber mensagens.';st.style.background='#f0fdf4';st.style.color='#166534';st.style.borderColor='#bbf7d0';}
+    if(st){st.innerHTML='✅ Token salvo! A IA está pronta para receber mensagens.';st.style.background='#eff6ff';st.style.color='#1e40af';st.style.borderColor='#bfdbfe';}
     toast('Token da IA salvo!','success');
   }catch(e){
     if(e.message&&(e.message.includes('401')||e.message.includes('Sessão'))){
@@ -4755,7 +4757,7 @@ async function testarN8NWebhook(){
   try{
     toast('Enviando mensagem de teste...','info');
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({canal:'teste',de:'sistema',nome:'Alliance CRM',texto:'Teste de conexão do Alliance CRM com N8N ✅',timestamp:new Date().toISOString()})});
+      body:JSON.stringify({canal:'teste',de:'sistema',nome:'LS Impulsiona',texto:'Teste de conexão do LS Impulsiona com N8N ✅',timestamp:new Date().toISOString()})});
     if(r.ok) toast('✅ N8N respondeu! Conexão funcionando!','success');
     else toast('⚠️ N8N respondeu com status '+r.status,'error');
   }catch(e){toast('❌ N8N não respondeu: '+e.message,'error');}
@@ -4887,9 +4889,9 @@ async function confirmarEsqueciSenha(){
   const show = (txt, ok) => {
     msg.textContent = txt;
     msg.style.display = 'block';
-    msg.style.background = ok ? '#f0fdf4' : '#fff1f2';
-    msg.style.color      = ok ? '#166534' : '#be123c';
-    msg.style.border     = ok ? '1px solid #bbf7d0' : '1px solid #fca5a5';
+    msg.style.background = ok ? '#eff6ff' : '#fff1f2';
+    msg.style.color      = ok ? '#1e40af' : '#be123c';
+    msg.style.border     = ok ? '1px solid #bfdbfe' : '1px solid #fca5a5';
   };
 
   if(!userAlvo||!userAdmin||!senhaAdmin||!nova||!nova2){ show('❌ Preencha todos os campos',false); return; }
@@ -5196,7 +5198,7 @@ function exportarPDF() {
     + 'table{width:100%;border-collapse:collapse}th{background:#2563eb;color:#fff;padding:10px;text-align:left;font-size:12px}'
     + 'td{padding:9px 10px;border-bottom:1px solid #eee;font-size:12px}'
     + 'tr:nth-child(even)td{background:#f9f9f9}'
-    + '.total{margin-top:20px;text-align:right;font-size:18px;font-weight:bold;color:#16a34a}'
+    + '.total{margin-top:20px;text-align:right;font-size:18px;font-weight:bold;color:#2563eb}'
     + '</style></head><body>'
     + '<h1>LS Impulsiona — Faturamento</h1>'
     + '<p>Período: ' + uiState.fatPeriod + ' — Gerado em ' + new Date().toLocaleString('pt-BR') + '</p>'
@@ -5247,7 +5249,7 @@ function _criarChart(canvas, chartData) {
           label: 'Leads',
           data: chartData.map(function(d){return d.count;}),
           backgroundColor: 'rgba(37,99,235,0.7)',
-          borderColor: '#16a34a',
+          borderColor: '#2563eb',
           borderWidth: 2,
           borderRadius: 6,
         }]
@@ -5288,7 +5290,7 @@ function _renderMetaMes() {
       +'<div class="scard-val">'+convertidos+'/'+meta+'</div>'
       +'<div class="scard-lbl">Meta do Mês</div>'
       +'<div style="margin-top:8px;height:4px;background:var(--z100);border-radius:2px">'
-      +'<div style="height:4px;border-radius:2px;background:'+(pct>=100?'#16a34a':'#d97706')+';width:'+pct+'%;transition:width .5s"></div></div>';
+      +'<div style="height:4px;border-radius:2px;background:'+(pct>=100?'#2563eb':'#d97706')+';width:'+pct+'%;transition:width .5s"></div></div>';
   }
 }
 
@@ -5348,17 +5350,17 @@ function abrirLandingPage() {
     + '<title>Agende sua consulta — ' + (perfil.name||'LS Impulsiona') + '</title>'
     + '<style>'
     + '*{margin:0;padding:0;box-sizing:border-box}'
-    + 'body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#14532d,#16a34a);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}'
+    + 'body{font-family:system-ui,sans-serif;background:linear-gradient(135deg,#1e3a8a,#2563eb);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}'
     + '.card{background:#fff;border-radius:24px;padding:36px 32px;width:100%;max-width:440px;box-shadow:0 32px 80px rgba(0,0,0,.25)}'
     + '.logo{text-align:center;margin-bottom:28px}'
-    + '.logo h1{font-size:24px;font-weight:900;color:#14532d;margin-bottom:4px}'
+    + '.logo h1{font-size:24px;font-weight:900;color:#1e3a8a;margin-bottom:4px}'
     + '.logo p{color:#6b7280;font-size:14px}'
     + 'label{display:block;font-size:11px;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}'
     + 'input,select,textarea{width:100%;padding:12px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:15px;outline:none;font-family:inherit;margin-bottom:14px;transition:border-color .2s}'
-    + 'input:focus,select:focus,textarea:focus{border-color:#16a34a}'
+    + 'input:focus,select:focus,textarea:focus{border-color:#2563eb}'
     + 'button{width:100%;padding:14px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer}'
     + '.success{display:none;text-align:center;padding:20px}'
-    + '.success h2{color:#16a34a;font-size:22px;margin-bottom:8px}'
+    + '.success h2{color:#2563eb;font-size:22px;margin-bottom:8px}'
     + '</style></head><body>'
     + '<div class="card">'
     + '<div class="logo">'
@@ -5802,7 +5804,7 @@ async function carregarContasMeta() {
           <div style="font-size:13px;font-weight:700">${escHtml(c.nome||c.phone_id)}</div>
           <div style="font-size:11px;color:var(--z400)">Phone ID: ${c.phone_id}${c.numero?' · '+escHtml(c.numero):''}${!c.token_ok?'<span style="color:#f59e0b;margin-left:6px">⚠️ Token pendente</span>':''}</div>
         </div>
-        <span style="background:${c.token_ok?'#dcfce7':'#fef3c7'};color:${c.token_ok?'#16a34a':'#92400e'};padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700">${c.token_ok?'✅ Ativo':'⚠️ Sem Token'}</span>
+        <span style="background:${c.token_ok?'#dbeafe':'#fef3c7'};color:${c.token_ok?'#2563eb':'#92400e'};padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700">${c.token_ok?'✅ Ativo':'⚠️ Sem Token'}</span>
         <button onclick="editarContaMeta('${c.id}')" style="background:none;border:1px solid var(--z200);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer">✏️ ${c.token_ok?'Editar':'+ Token'}</button>
         <button onclick="removerContaMeta('${c.id}')" style="background:none;border:1px solid #fecdd3;border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer;color:#e11d48">🗑</button>
       </div>`).join('');
@@ -6045,7 +6047,7 @@ async function testarWppAuto() {
     const r = await fetch(`${evolUrl.replace(/\/$/, '')}/message/sendText/${evolInstance}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolKey },
-      body: JSON.stringify({ number: numFmt, text: '🤖 Teste de automação Alliance CRM — está funcionando!' }),
+      body: JSON.stringify({ number: numFmt, text: '🤖 Teste de automação LS Impulsiona — está funcionando!' }),
     });
     const d = await r.json();
     if (r.ok) { toast('Mensagem de teste enviada! 📱', 'success'); if(st) st.textContent = 'Teste enviado ✅'; }
@@ -6145,8 +6147,8 @@ function atualizarStatusInsta(conectado, nome) {
   const nomeEl = document.getElementById('instaConnectedName');
   if (el) {
     el.textContent = conectado ? '✅ Conectado' : 'Não conectado';
-    el.style.background = conectado ? '#dcfce7' : '#f4f4f5';
-    el.style.color = conectado ? '#166534' : '#52525b';
+    el.style.background = conectado ? '#dbeafe' : '#f4f4f5';
+    el.style.color = conectado ? '#1e40af' : '#52525b';
   }
   if (form) { form.style.display = conectado ? 'none' : 'block'; }
   if (conn) { conn.style.display = conectado ? 'block' : 'none'; }
@@ -6252,12 +6254,12 @@ window.addEventListener('load', function() {
     btnLogin.addEventListener('touchstart', function(e){ e.preventDefault(); _executarLogin(); }, {passive:false});
   }
   if (loginUser) {
-    loginUser.addEventListener('focus',  function(){ this.style.borderColor='#16a34a'; });
+    loginUser.addEventListener('focus',  function(){ this.style.borderColor='#2563eb'; });
     loginUser.addEventListener('blur',   function(){ this.style.borderColor='#e5e7eb'; });
     loginUser.addEventListener('keydown',function(e){ if(e.key==='Enter'){ if(loginPass) loginPass.focus(); } });
   }
   if (loginPass) {
-    loginPass.addEventListener('focus',  function(){ this.style.borderColor='#16a34a'; });
+    loginPass.addEventListener('focus',  function(){ this.style.borderColor='#2563eb'; });
     loginPass.addEventListener('blur',   function(){ this.style.borderColor='#e5e7eb'; });
     loginPass.addEventListener('keydown',function(e){ if(e.key==='Enter') _executarLogin(); });
   }
@@ -6544,7 +6546,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- ══ Modal Novo Usuário ══════════════════════════════════════════════════ -->
 <div class="overlay" id="addUserModal">
   <div class="modal" style="max-width:500px">
-    <div class="modal-hdr" style="background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;padding:18px 20px">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;padding:18px 20px">
       <div>
         <div style="font-size:16px;font-weight:900">👤 Criar Novo Acesso</div>
         <div style="font-size:11px;opacity:.8;margin-top:2px">Preencha os dados do funcionário</div>
