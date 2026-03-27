@@ -318,6 +318,27 @@ try { db.exec("CREATE INDEX IF NOT EXISTS idx_metas_periodo ON metas_globais(per
 // ── Migrações de schema ───────────────────────────────────────────────────────
 try { db.exec("ALTER TABLE leads ADD COLUMN unidade TEXT DEFAULT 'Conquista'"); } catch(e) { /* já existe */ }
 
+// ── Índices de otimização ───────────────────────────────────────────────────────
+// Vendas
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_vendas_criado_por ON vendas(criado_por)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_vendas_data ON vendas(criado_em)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_vendas_lead ON vendas(lead_id)"); } catch(e) {}
+
+// Leads
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_leads_data ON leads(criado_em)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_leads_telefone ON leads(telefone)"); } catch(e) {}
+
+// WhatsApp/Instagram
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_wpp_msg_de ON wpp_mensagens(de)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_wpp_msg_data ON wpp_mensagens(criado_em)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_ig_msg_de ON instagram_mensagens(de)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_ig_msg_data ON instagram_mensagens(criado_em)"); } catch(e) {}
+
+// Usuários
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_usuarios_ativo ON usuarios(ativo)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_usuarios_role ON usuarios(role)"); } catch(e) {}
+
 // ── Usuários padrão ───────────────────────────────────────────────────────────
 const DEFAULTS = [
   { nome:'Lary Soares',  usuario:'lary',      senha:'admin123',  cargo:'Administrador', role:'admin',        setor:'gestao'   },
@@ -1835,6 +1856,88 @@ app.get('/api/calendario', auth, (req, res) => {
     });
 
     res.json(eventos);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// RELATÓRIOS ENDPOINTS
+
+// GET /api/relatorios/vendas-csv - Exportar vendas como CSV
+app.get('/api/relatorios/vendas-csv', auth, (req, res) => {
+  try {
+    const periodo = req.query.periodo || 'mes';
+    let where = '1=1';
+    const hoje = new Date();
+
+    if (periodo === 'dia') {
+      where = `date(v.criado_em)=date('now','localtime')`;
+    } else if (periodo === 'semana') {
+      where = `date(v.criado_em)>=date('now','localtime','-7 days')`;
+    } else if (periodo === 'mes') {
+      where = `date(v.criado_em)>=date('now','localtime','-30 days')`;
+    }
+
+    const vendas = db.prepare(`
+      SELECT v.id, v.cliente_nome, v.valor, v.pagamento, v.servico, v.criado_em, u.nome as atendente
+      FROM vendas v
+      LEFT JOIN usuarios u ON v.criado_por=u.id
+      WHERE ${where}
+      ORDER BY v.criado_em DESC
+    `).all();
+
+    // Gerar CSV
+    const headers = 'ID,Cliente,Valor,Pagamento,Serviço,Atendente,Data\n';
+    const rows = vendas.map(v => `${v.id},"${v.cliente_nome}",${v.valor},"${v.pagamento}","${v.servico}","${v.atendente}","${v.criado_em}"`).join('\n');
+    const csv = headers + rows;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="vendas-${periodo}-${new Date().toISOString().split('T')[0]}.csv"`);
+    res.send(csv);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/relatorios/desempenho - Relatório de desempenho de atendentes
+app.get('/api/relatorios/desempenho', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    const data = {};
+
+    // Total de vendas e ticket médio
+    const vendas = db.prepare('SELECT SUM(valor) as total, COUNT(*) as count, AVG(valor) as media FROM vendas WHERE date(criado_em)>=date("now","localtime","-30 days")').get();
+
+    // Top 5 atendentes
+    const top = db.prepare(`
+      SELECT u.nome, COUNT(v.id) as vendas, SUM(v.valor) as valor_total, AVG(v.valor) as ticket_medio, COALESCE(SUM(pa.pontos), 0) as pontos
+      FROM usuarios u
+      LEFT JOIN vendas v ON u.id=v.criado_por AND date(v.criado_em)>=date('now','localtime','-30 days')
+      LEFT JOIN pontuacao_atendentes pa ON u.id=pa.usuario_id AND date(pa.data)>=date('now','localtime','-30 days')
+      WHERE u.ativo=1
+      GROUP BY u.id
+      ORDER BY vendas DESC
+      LIMIT 5
+    `).all();
+
+    // Conversão diária (últimos 7 dias)
+    const conv = [];
+    for (let i = 6; i >= 0; i--) {
+      const data_busca = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const leads_day = db.prepare('SELECT COUNT(*) as c FROM leads WHERE date(criado_em)=?').get(data_busca);
+      const vendas_day = db.prepare('SELECT COUNT(*) as c FROM vendas WHERE date(criado_em)=?').get(data_busca);
+      conv.push({ data: data_busca, leads: leads_day?.c || 0, vendas: vendas_day?.c || 0, taxa: (leads_day?.c > 0 ? Math.round((vendas_day?.c || 0) / leads_day.c * 100) : 0) + '%' });
+    }
+
+    res.json({
+      periodo: 'Últimos 30 dias',
+      resumo: {
+        total_vendas: vendas?.total || 0,
+        quantidade: vendas?.count || 0,
+        ticket_medio: Math.round(vendas?.media || 0)
+      },
+      top_atendentes: top,
+      conversao_7dias: conv
+    });
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
