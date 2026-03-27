@@ -6774,7 +6774,7 @@ function instalarApp() {
 <script>
 (function(){
   // Domínios autorizados
-  const ALLOWED = ['alliance-crm-production.up.railway.app','localhost','127.0.0.1'];
+  const ALLOWED = ['alliance-crm-production.up.railway.app','localhost','127.0.0.1','railway.app','up.railway.app','-ls-impulsiona-crm-prod.up.railway.app'];
   const host = window.location.hostname;
   if(!ALLOWED.some(d => host === d || host.endsWith('.'+d))){
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#fff;font-family:sans-serif;flex-direction:column;gap:16px"><div style="font-size:48px">🔒</div><div style="font-size:22px;font-weight:700">Sistema Protegido</div><div style="color:#94a3b8;font-size:14px">Este sistema é licenciado e não pode ser copiado.</div><div style="color:#94a3b8;font-size:12px">Domínio não autorizado: '+host+'</div><div style="font-size:11px;color:#475569;margin-top:8px">© LS MARKETING — Todos os direitos reservados</div></div>';
