@@ -242,6 +242,79 @@ db.exec(`CREATE TABLE IF NOT EXISTS instagram_transferencias (
   UNIQUE(conversa_de, criado_em)
 )`);
 
+// ════════════════════════════════════════════════════════════════════════════════
+// NOVAS TABELAS - DASHBOARD v2
+// ════════════════════════════════════════════════════════════════════════════════
+
+// Tabela de rastreamento de pagamentos
+db.exec(`CREATE TABLE IF NOT EXISTS pagamentos (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id            INTEGER UNIQUE,
+  cliente_nome        TEXT,
+  valor               REAL,
+  data_pagamento      DATE,
+  forma_pagamento     TEXT,
+  data_entrega_video  DATE,
+  status              TEXT DEFAULT 'AGUARDANDO',
+  criado_em           TEXT DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_pagamentos_venda ON pagamentos(venda_id)"); } catch(e) {}
+
+// Tabela de rastreamento de vídeos
+db.exec(`CREATE TABLE IF NOT EXISTS videos (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id          INTEGER,
+  cliente_nome      TEXT,
+  tipo              TEXT,
+  url               TEXT,
+  data_entrega      DATE,
+  status            TEXT DEFAULT 'ENVIADO',
+  criado_em         TEXT DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_videos_venda ON videos(venda_id)"); } catch(e) {}
+
+// Tabela de indicações (cliente indica outro)
+db.exec(`CREATE TABLE IF NOT EXISTS indicacoes (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  venda_id_indicador  INTEGER,
+  novo_cliente_nome   TEXT,
+  novo_cliente_tel    TEXT,
+  status              TEXT DEFAULT 'LEAD',
+  data_conversao      DATE,
+  criado_em           TEXT DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY(venda_id_indicador) REFERENCES vendas(id)
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_indicacoes_venda ON indicacoes(venda_id_indicador)"); } catch(e) {}
+
+// Tabela de pontuação de atendentes (calculada automaticamente)
+db.exec(`CREATE TABLE IF NOT EXISTS pontuacao_atendentes (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id        INTEGER,
+  venda_id          INTEGER,
+  pontos            INTEGER,
+  faixa_valor       TEXT,
+  data              DATE,
+  criado_em         TEXT DEFAULT (datetime('now','localtime')),
+  FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
+  FOREIGN KEY(venda_id) REFERENCES vendas(id)
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_pontuacao_usuario ON pontuacao_atendentes(usuario_id)"); } catch(e) {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_pontuacao_data ON pontuacao_atendentes(data)"); } catch(e) {}
+
+// Tabela de metas globais da empresa
+db.exec(`CREATE TABLE IF NOT EXISTS metas_globais (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  periodo           TEXT,
+  tipo              TEXT,
+  valor_meta        REAL,
+  valor_realizado   REAL DEFAULT 0,
+  mes_ano           DATE,
+  criado_em         TEXT DEFAULT (datetime('now','localtime'))
+)`);
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_metas_periodo ON metas_globais(periodo, mes_ano)"); } catch(e) {}
+
 // ── Migrações de schema ───────────────────────────────────────────────────────
 try { db.exec("ALTER TABLE leads ADD COLUMN unidade TEXT DEFAULT 'Conquista'"); } catch(e) { /* já existe */ }
 
@@ -534,6 +607,8 @@ app.post('/api/vendas', auth, (req, res) => {
   if (d.tipo === 'Venda' && d.lead_id) {
     db.prepare("UPDATE leads SET status='CONVERTEU',atualizado_em=datetime('now','localtime') WHERE id=?").run(d.lead_id);
   }
+  // Atualizar pontos e metas globais
+  atualizarPontosEMetas(r.lastInsertRowid);
   res.json({ ok: true, id: r.lastInsertRowid });
 });
 
@@ -1437,6 +1512,380 @@ app.post('/api/push/unsubscribe', auth, (req, res) => {
   db.prepare('DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?').run(req.user.id, endpoint);
   res.json({ ok: true });
 });
+
+// ════════════════════════════════════════════════════════════════════════════════
+// DASHBOARD v2 - NOVAS FUNCIONALIDADES
+// ════════════════════════════════════════════════════════════════════════════════
+
+// Função para calcular pontos baseado em valor da venda
+function calcularPontos(valor) {
+  if (valor < 400) return 1;
+  if (valor < 601) return 3;
+  if (valor < 801) return 4;
+  if (valor < 1001) return 5;
+  if (valor < 1501) return 6;
+  return 7;
+}
+
+function getFaixaValor(valor) {
+  if (valor < 400) return '1-399';
+  if (valor < 601) return '400-600';
+  if (valor < 801) return '601-800';
+  if (valor < 1001) return '801-1000';
+  if (valor < 1501) return '1001-1500';
+  return '1501+';
+}
+
+// GET /api/dashboard/resumo - Resumo geral com metas e KPIs
+app.get('/api/dashboard/resumo', auth, (req, res) => {
+  try {
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInicio7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const mesAtual = hoje.substring(0, 7);
+
+    // Metas
+    const metaDia = db.prepare('SELECT valor_meta, valor_realizado FROM metas_globais WHERE periodo="diaria" AND mes_ano=?').get(hoje) || { valor_meta: 5000, valor_realizado: 0 };
+    const metaSemana = db.prepare('SELECT valor_meta, valor_realizado FROM metas_globais WHERE periodo="semanal" AND mes_ano>=?').get(dataInicio7) || { valor_meta: 35000, valor_realizado: 0 };
+    const metaMes = db.prepare('SELECT valor_meta, valor_realizado FROM metas_globais WHERE periodo="mensal" AND mes_ano=?').get(mesAtual + '-01') || { valor_meta: 150000, valor_realizado: 0 };
+
+    // Conversões
+    const conversoes = db.prepare('SELECT COUNT(*) as c FROM vendas WHERE date(criado_em)=?').get(hoje);
+    const leads = db.prepare('SELECT COUNT(*) as c FROM leads WHERE date(criado_em)=?').get(hoje);
+    const taxaConversao = leads?.c > 0 ? Math.round((conversoes?.c || 0) / leads.c * 100) : 0;
+
+    // Ticket médio
+    const ticketMedio = db.prepare('SELECT AVG(valor) as media FROM vendas WHERE date(criado_em)>=?').get(dataInicio7);
+
+    // Leads pendentes (não convertidos)
+    const leadsPendentes = db.prepare('SELECT COUNT(*) as c FROM leads WHERE status != "CONVERTEU"').get();
+
+    res.json({
+      meta_dia: { valor: metaDia.valor_meta, realizado: metaDia.valor_realizado, pct: Math.round((metaDia.valor_realizado / metaDia.valor_meta) * 100) },
+      meta_semana: { valor: metaSemana.valor_meta, realizado: metaSemana.valor_realizado, pct: Math.round((metaSemana.valor_realizado / metaSemana.valor_meta) * 100) },
+      meta_mes: { valor: metaMes.valor_meta, realizado: metaMes.valor_realizado, pct: Math.round((metaMes.valor_realizado / metaMes.valor_meta) * 100) },
+      conversoes_hoje: conversoes?.c || 0,
+      taxa_conversao: taxaConversao,
+      ticket_medio: Math.round(ticketMedio?.media || 0),
+      leads_pendentes: leadsPendentes?.c || 0
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/dashboard/ranking-atendentes - TOP 10 atendentes por pontos
+app.get('/api/dashboard/ranking-atendentes', auth, (req, res) => {
+  try {
+    const periodo = req.query.periodo || 'mes'; // dia, semana, mes, tudo
+    let where = '1=1';
+    const hoje = new Date();
+
+    if (periodo === 'dia') {
+      const data = hoje.toISOString().split('T')[0];
+      where = `pa.data='${data}'`;
+    } else if (periodo === 'semana') {
+      const data7 = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      where = `pa.data>='${data7}'`;
+    } else if (periodo === 'mes') {
+      const mesPrimeiro = hoje.toISOString().split('T')[0].substring(0, 7) + '-01';
+      where = `pa.data>='${mesPrimeiro}'`;
+    }
+
+    const ranking = db.prepare(`
+      SELECT
+        u.id, u.nome,
+        COALESCE(SUM(pa.pontos), 0) as pontos,
+        COUNT(DISTINCT pa.venda_id) as vendas,
+        COALESCE(SUM(v.valor), 0) as valor_total
+      FROM usuarios u
+      LEFT JOIN pontuacao_atendentes pa ON u.id=pa.usuario_id AND ${where}
+      LEFT JOIN vendas v ON u.id=v.criado_por AND ${where.replace('pa.', 'date(v.criado_em)=')}
+      WHERE u.ativo=1
+      GROUP BY u.id
+      ORDER BY pontos DESC
+      LIMIT 10
+    `).all();
+
+    res.json(ranking.map((r, idx) => ({ ...r, posicao: idx + 1 })));
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/dashboard/metas - Status das metas
+app.get('/api/dashboard/metas', auth, (req, res) => {
+  try {
+    const hoje = new Date().toISOString().split('T')[0];
+    const metaDia = db.prepare('SELECT * FROM metas_globais WHERE periodo="diaria" AND mes_ano=?').get(hoje);
+    const metaSemana = db.prepare('SELECT * FROM metas_globais WHERE periodo="semanal" AND mes_ano>=?').get(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const metaMes = db.prepare('SELECT * FROM metas_globais WHERE periodo="mensal" AND mes_ano=?').get(hoje.substring(0, 7) + '-01');
+
+    res.json({
+      dia: metaDia || null,
+      semana: metaSemana || null,
+      mes: metaMes || null
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/dashboard/grafico-conversoes - Dados para gráfico de conversões (últimos 7 dias)
+app.get('/api/dashboard/grafico-conversoes', auth, (req, res) => {
+  try {
+    const dados = [];
+    for (let i = 6; i >= 0; i--) {
+      const data = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const vendas = db.prepare('SELECT COUNT(*) as c FROM vendas WHERE date(criado_em)=?').get(data);
+      const leads = db.prepare('SELECT COUNT(*) as c FROM leads WHERE date(criado_em)=?').get(data);
+      dados.push({
+        data,
+        vendas: vendas?.c || 0,
+        leads: leads?.c || 0,
+        taxa: leads?.c > 0 ? Math.round((vendas?.c || 0) / leads.c * 100) : 0
+      });
+    }
+    res.json(dados);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PAGAMENTOS ENDPOINTS
+
+// GET /api/pagamentos - Lista pagamentos
+app.get('/api/pagamentos', auth, (req, res) => {
+  try {
+    const pagamentos = db.prepare('SELECT * FROM pagamentos ORDER BY criado_em DESC').all();
+    res.json(pagamentos);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/pagamentos - Registrar pagamento
+app.post('/api/pagamentos', auth, (req, res) => {
+  try {
+    const { venda_id, data_pagamento, forma_pagamento } = req.body;
+    if (!venda_id) return res.status(400).json({ error: 'venda_id obrigatório' });
+
+    const venda = db.prepare('SELECT * FROM vendas WHERE id=?').get(venda_id);
+    if (!venda) return res.status(404).json({ error: 'Venda não encontrada' });
+
+    const r = db.prepare(`
+      INSERT INTO pagamentos (venda_id, cliente_nome, valor, data_pagamento, forma_pagamento, status)
+      VALUES (?, ?, ?, ?, ?, 'PAGO')
+    `).run(venda_id, venda.cliente_nome, venda.valor, data_pagamento || new Date().toISOString().split('T')[0], forma_pagamento || venda.pagamento);
+
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/pagamentos/:id - Atualizar entrega de vídeo
+app.put('/api/pagamentos/:id', auth, (req, res) => {
+  try {
+    const { data_entrega_video } = req.body;
+    db.prepare('UPDATE pagamentos SET data_entrega_video=? WHERE id=?').run(data_entrega_video, req.params.id);
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// VÍDEOS ENDPOINTS
+
+// GET /api/videos - Lista vídeos
+app.get('/api/videos', auth, (req, res) => {
+  try {
+    const videos = db.prepare('SELECT * FROM videos ORDER BY data_entrega DESC').all();
+    res.json(videos);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/videos/enviar - Registrar envio de vídeo
+app.post('/api/videos/enviar', auth, (req, res) => {
+  try {
+    const { venda_id, data_entrega, tipo } = req.body;
+    if (!venda_id) return res.status(400).json({ error: 'venda_id obrigatório' });
+
+    const venda = db.prepare('SELECT * FROM vendas WHERE id=?').get(venda_id);
+    if (!venda) return res.status(404).json({ error: 'Venda não encontrada' });
+
+    const r = db.prepare(`
+      INSERT INTO videos (venda_id, cliente_nome, tipo, data_entrega, status)
+      VALUES (?, ?, ?, ?, 'ENVIADO')
+    `).run(venda_id, venda.cliente_nome, tipo || 'Padrão', data_entrega || new Date().toISOString().split('T')[0]);
+
+    // Notificar com push
+    pushParaRoles(['admin', 'gestor'], '🎥 Vídeo enviado', `Vídeo enviado para ${venda.cliente_nome}`, '/videos');
+
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// INDICAÇÕES ENDPOINTS
+
+// GET /api/indicacoes - Lista indicações
+app.get('/api/indicacoes', auth, (req, res) => {
+  try {
+    const indicacoes = db.prepare('SELECT * FROM indicacoes ORDER BY criado_em DESC').all();
+    res.json(indicacoes);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/indicacoes - Registrar indicação
+app.post('/api/indicacoes', auth, (req, res) => {
+  try {
+    const { venda_id_indicador, novo_cliente_nome, novo_cliente_tel } = req.body;
+    if (!venda_id_indicador || !novo_cliente_nome || !novo_cliente_tel) {
+      return res.status(400).json({ error: 'Campos obrigatórios' });
+    }
+
+    const r = db.prepare(`
+      INSERT INTO indicacoes (venda_id_indicador, novo_cliente_nome, novo_cliente_tel, status)
+      VALUES (?, ?, ?, 'LEAD')
+    `).run(venda_id_indicador, novo_cliente_nome, novo_cliente_tel);
+
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// METAS GLOBAIS ENDPOINTS
+
+// GET /api/metas-globais - Listar metas
+app.get('/api/metas-globais', auth, (req, res) => {
+  try {
+    const metas = db.prepare('SELECT * FROM metas_globais ORDER BY mes_ano DESC').all();
+    res.json(metas);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/metas-globais - Criar meta (admin/gestor)
+app.post('/api/metas-globais', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    const { periodo, tipo, valor_meta, mes_ano } = req.body;
+    if (!periodo || !valor_meta) return res.status(400).json({ error: 'Campos obrigatórios' });
+
+    const r = db.prepare(`
+      INSERT INTO metas_globais (periodo, tipo, valor_meta, valor_realizado, mes_ano)
+      VALUES (?, ?, ?, 0, ?)
+    `).run(periodo, tipo || 'Vendas', valor_meta, mes_ano || new Date().toISOString().split('T')[0]);
+
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/metas-globais/:id - Atualizar meta (admin/gestor)
+app.put('/api/metas-globais/:id', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    const { valor_meta, valor_realizado } = req.body;
+    db.prepare(`
+      UPDATE metas_globais
+      SET valor_meta=COALESCE(?,valor_meta), valor_realizado=COALESCE(?,valor_realizado)
+      WHERE id=?
+    `).run(valor_meta||null, valor_realizado||null, req.params.id);
+
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/calendario - Eventos do calendário (pagamentos + vídeos)
+app.get('/api/calendario', auth, (req, res) => {
+  try {
+    const eventos = [];
+
+    // Eventos de pagamentos
+    const pagamentos = db.prepare('SELECT * FROM pagamentos WHERE data_pagamento IS NOT NULL').all();
+    pagamentos.forEach(p => {
+      eventos.push({
+        id: 'pag-' + p.id,
+        title: 'Pagamento: ' + p.cliente_nome,
+        start: p.data_pagamento,
+        tipo: 'pagamento',
+        status: p.status
+      });
+    });
+
+    // Eventos de vídeos
+    const videos = db.prepare('SELECT * FROM videos WHERE data_entrega IS NOT NULL').all();
+    videos.forEach(v => {
+      eventos.push({
+        id: 'vid-' + v.id,
+        title: 'Vídeo: ' + v.cliente_nome,
+        start: v.data_entrega,
+        tipo: 'video',
+        status: v.status
+      });
+    });
+
+    res.json(eventos);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Função auxiliar para atualizar pontos e metas quando cria venda
+// Esta função é chamada após INSERT em vendas
+function atualizarPontosEMetas(venda_id) {
+  try {
+    const venda = db.prepare('SELECT * FROM vendas WHERE id=?').get(venda_id);
+    if (!venda) return;
+
+    // Calcular e inserir pontos
+    const pontos = calcularPontos(venda.valor);
+    const faixa = getFaixaValor(venda.valor);
+    const data = new Date().toISOString().split('T')[0];
+
+    db.prepare(`
+      INSERT INTO pontuacao_atendentes (usuario_id, venda_id, pontos, faixa_valor, data)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(venda.criado_por, venda_id, pontos, faixa, data);
+
+    // Atualizar metas globais
+    const hoje = data;
+    const mesAtual = data.substring(0, 7);
+    const dataInicio7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    // Meta diária
+    db.prepare(`
+      UPDATE metas_globais
+      SET valor_realizado = valor_realizado + ?
+      WHERE periodo='diaria' AND mes_ano=?
+    `).run(venda.valor, hoje);
+
+    // Meta semanal
+    db.prepare(`
+      UPDATE metas_globais
+      SET valor_realizado = valor_realizado + ?
+      WHERE periodo='semanal' AND mes_ano>=?
+    `).run(venda.valor, dataInicio7);
+
+    // Meta mensal
+    db.prepare(`
+      UPDATE metas_globais
+      SET valor_realizado = valor_realizado + ?
+      WHERE periodo='mensal' AND mes_ano=?
+    `).run(venda.valor, mesAtual + '-01');
+  } catch(e) {
+    console.error('Erro ao atualizar pontos:', e.message);
+  }
+}
 
 // Enviar push para usuários por role
 function pushParaRoles(roles, titulo, corpo, url) {
