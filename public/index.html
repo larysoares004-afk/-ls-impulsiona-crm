@@ -1681,7 +1681,7 @@ function loginOffline(usuario, senha) {
 function entrarComUser(user, offline) {
   currentUser = {...user};
   delete currentUser.senha;
-  currentUser.permissoes = user.permissoes || PERMISSOES[user.role] || [];
+  currentUser.permissoes = PERMISSOES[user.role] || [];
   sessionStorage.setItem('alliance_sess', JSON.stringify({
     usuario: user.usuario, expira: Date.now()+8*3600*1000, offline
   }));
@@ -1729,7 +1729,7 @@ function _executarLogin() {
         if (d.ok && d.token) {
           _salvarToken(d.token);
           currentUser = d.user;
-          currentUser.permissoes = d.permissoes || PERMISSOES[d.user.role] || [];
+          currentUser.permissoes = PERMISSOES[d.user.role] || [];
           // Sincroniza dados reais e re-renderiza a aba atual
           sincronizarDados().catch(function(){});
         } else {
@@ -1759,7 +1759,7 @@ function _executarLogin() {
     if (done) return; done = true; clearTimeout(tid);
     if (!res.ok) { erro(res.d.error || 'Usuário ou senha incorretos'); return; }
     currentUser = res.d.user;
-    currentUser.permissoes = res.d.permissoes || PERMISSOES[res.d.user.role] || [];
+    currentUser.permissoes = PERMISSOES[res.d.user.role] || [];
     // Salvar token em sessionStorage + localStorage (persiste no iOS)
     if (res.d.token) _salvarToken(res.d.token);
     sessionStorage.setItem('alliance_sess', JSON.stringify({
@@ -1803,7 +1803,7 @@ function checkSession() {
     if (s.usuario === '__restore__' && tokenLS) {
       return api('GET', '/api/auth/me').then(d => {
         currentUser = d.user;
-        currentUser.permissoes = d.permissoes || PERMISSOES[d.user.role] || [];
+        currentUser.permissoes = PERMISSOES[d.user.role] || [];
         // Atualizar sessão com o usuario correto
         const ns = { usuario: d.user.usuario, expira: Date.now()+8*3600*1000, offline:false, token: tokenLS };
         sessionStorage.setItem('alliance_sess', JSON.stringify(ns));
@@ -1822,13 +1822,13 @@ function checkSession() {
     if (user) {
       currentUser = {...user};
       delete currentUser.senha;
-      currentUser.permissoes = user.permissoes || PERMISSOES[user.role] || [];
+      currentUser.permissoes = PERMISSOES[user.role] || [];
       // Tentar atualizar do backend em background (user + dados reais)
       if (!s.offline && _getAuthToken()) {
         backendDisponivel().then(online => {
           if(online) {
             api('GET','/api/auth/me')
-              .then(d => { currentUser = d.user; currentUser.permissoes = d.permissoes || PERMISSOES[d.user.role] || []; })
+              .then(d => { currentUser = d.user; currentUser.permissoes = PERMISSOES[d.user.role] || []; })
               .catch(()=>{});
             // Sincronizar dados reais do banco (fix iOS mostrando dados antigos)
             setTimeout(() => sincronizarDados().catch(()=>{}), 500);
@@ -1843,7 +1843,7 @@ function checkSession() {
       if (!online) return false;
       return api('GET', '/api/auth/me').then(d => {
         currentUser = d.user;
-        currentUser.permissoes = d.permissoes || PERMISSOES[d.user.role] || [];
+        currentUser.permissoes = PERMISSOES[d.user.role] || [];
         return true;
       }).catch(() => false);
     });
