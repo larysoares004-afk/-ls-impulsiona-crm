@@ -684,10 +684,6 @@ select.inp{cursor:pointer}
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Leads</span>
     </button>
-    <button class="nb" onclick="goTo('agenda')" style="display:none">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>Agenda</span>
-    </button>
     <button class="nb" onclick="goTo('faturamento')">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Faturamento</span>
@@ -700,10 +696,6 @@ select.inp{cursor:pointer}
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
       <span>Serviços</span>
     </button>
-    <button class="nb" onclick="goTo('chat')" id="nb-chat" style="display:none">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2v4l-4-4H9a2 2 0 0 1-2-2v-1"/><path d="M15 3H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2v4l4-4h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
-      <span>Chat Interno</span><span class="nb-badge" id="chatBadge" style="display:none">0</span>
-    </button>
     <button class="nb" onclick="goTo('whatsapp')">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span>Conexões</span>
@@ -711,19 +703,6 @@ select.inp{cursor:pointer}
     <button class="nb" onclick="goTo('atendimentos')">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg>
       <span>Atendimentos</span>
-    </button>
-    <button class="nb" onclick="goTo('novo')" style="display:none">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      <span>Novo Agendamento</span>
-    </button>
-    <div style="padding: 12px 10px; color: var(--z400); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px;">Dashboard v2</div>
-    <button class="nb" onclick="goTo('que-chegou')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Que chegou</span>
-    </button>
-    <button class="nb" onclick="goTo('se-converteu')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>Se converteu</span>
     </button>
     <button class="nb" onclick="goTo('videos')">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
@@ -741,6 +720,12 @@ select.inp{cursor:pointer}
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Configurações</span>
     </button>
+    <!-- Itens ocultos permanentemente -->
+    <button class="nb" onclick="goTo('agenda')" style="display:none!important"><span>Agenda</span></button>
+    <button class="nb" onclick="goTo('chat')" id="nb-chat" style="display:none!important"><span>Chat Interno</span><span class="nb-badge" id="chatBadge" style="display:none">0</span></button>
+    <button class="nb" onclick="goTo('novo')" style="display:none!important"><span>Novo Agendamento</span></button>
+    <button class="nb" onclick="goTo('que-chegou')" style="display:none!important"><span>Que chegou</span></button>
+    <button class="nb" onclick="goTo('se-converteu')" style="display:none!important"><span>Se converteu</span></button>
   </nav>
   <div class="sb-bot">
     <!-- Botão instalar app (PWA) -->
@@ -808,8 +793,8 @@ select.inp{cursor:pointer}
   </div>
   <!-- Stats grid -->
   <div class="g4" style="margin-bottom:20px" id="dashStats"></div>
-  <!-- Meta do mês card extra -->
-  <div id="dashMetaCard" class="scard" style="margin-bottom:20px;display:none"></div>
+  <!-- Meta cards (Dia, Semana, Mês, Clientes, Faturamento) -->
+  <div id="dashMetaCard" style="margin-bottom:20px"></div>
   <!-- Charts row -->
   <div class="g3" style="margin-bottom:20px">
     <div class="card gcol2">
@@ -1582,11 +1567,11 @@ const PERMISSOES = {
   // Gerente — tudo menos faturamento
   gerente:  ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking'],
   // Atendente — acesso operacional
-  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes'],
+  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
   // Vendedor — acesso comercial + ranking
   vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
   // Colaborador — acesso básico
-  colaborador:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu'],
+  colaborador:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
 };
 
 let currentUser = null;
@@ -1962,13 +1947,28 @@ async function salvarConfigServidor() {
   } catch(e) { console.warn('Erro ao salvar config:', e); }
 }
 
+// Abas permanentemente ocultas (não devem aparecer para nenhum usuário)
+const ABAS_OCULTAS = ['agenda','chat','novo','que-chegou','se-converteu'];
+
 function aplicarPermissoes(){
   if(!currentUser) return;
-  const perm = (currentUser.permissoes) || PERMISSOES[currentUser.role] || PERMISSOES.atendente;
+  // Admin e gestor têm acesso total
+  const isAdmin = currentUser.role === 'admin' || currentUser.role === 'gestor';
+  const perm = isAdmin ? null : (PERMISSOES[currentUser.role] || PERMISSOES.atendente);
   document.querySelectorAll('.nb').forEach(btn=>{
     const oc=btn.getAttribute('onclick')||'';
     const m=oc.match(/goTo\('([\w-]+)'\)/);
-    if(m) btn.style.display=perm.includes(m[1])?'':'none';
+    if(!m) return;
+    const tab = m[1];
+    // Sempre ocultar abas permanentes
+    if(ABAS_OCULTAS.includes(tab)){
+      btn.style.setProperty('display','none','important');
+      return;
+    }
+    // Admin/gestor: mostrar tudo
+    if(isAdmin){ btn.style.display=''; return; }
+    // Outros: verificar permissão
+    btn.style.display = perm.includes(tab) ? '' : 'none';
   });
 }
 
@@ -1982,9 +1982,7 @@ function iniciarSistema(){
     aplicarPermissoes();
     mostrarAbaUsuarios();
     renderVendaRapidaBtn();
-    // Mostrar meta card para admin/gestor/gerente
-    var metaCard = document.getElementById('dashMetaCard');
-    if(metaCard && ['admin','gestor','gerente'].includes(currentUser.role)) metaCard.style.display='block';
+    // Meta card é sempre mostrado para todos
     // Verificar agendamentos de hoje
     setTimeout(verificarAgendamentosHoje, 1500);
     // Ativar notificações push (após login)
@@ -2024,8 +2022,24 @@ const SHEETS = 'https://script.google.com/macros/s/AKfycbzMbgGVgPbLBvDjtRO9o-D5M
 const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#f97316','#ec4899','#06b6d4'];
 const TIMES = Array.from({length:17},(_,i)=>`${String(8+i).padStart(2,'0')}:00`);
 const SOURCE_COLORS = {'WhatsApp':'#25D366','Meta Ads':'#1877F2','Google Ads':'#EA4335','Landing Page':'#6366f1','Indicação':'#f59e0b','Manual':'#71717a'};
-const STATUS_COLORS = {'CHEGOU':'#2563eb','CONVERTEU':'#10b981','NÃO CONVERTEU':'#f43f5e','FOLLOW-UP 1':'#f97316','FOLLOW-UP 2':'#f59e0b','FOLLOW-UP 3':'#8b5cf6','INDICAÇÃO':'#0d9488'};
-const STATUS_BG = {'CHEGOU':'#dbeafe','CONVERTEU':'#d1fae5','NÃO CONVERTEU':'#fff1f2','FOLLOW-UP 1':'#fff7ed','FOLLOW-UP 2':'#fffbeb','FOLLOW-UP 3':'#ede9fe','INDICAÇÃO':'#ccfbf1'};
+const STATUS_COLORS = {
+  'CHEGOU':'#2563eb','chegou':'#2563eb',
+  'CONVERTEU':'#10b981','converteu':'#10b981',
+  'NÃO CONVERTEU':'#f43f5e','nao-converteu':'#f43f5e',
+  'FOLLOW-UP 1':'#f97316','followup1':'#f97316',
+  'FOLLOW-UP 2':'#f59e0b','followup2':'#f59e0b',
+  'FOLLOW-UP 3':'#8b5cf6','followup3':'#8b5cf6',
+  'INDICAÇÃO':'#0d9488','indicacao':'#0d9488'
+};
+const STATUS_BG = {
+  'CHEGOU':'#dbeafe','chegou':'#dbeafe',
+  'CONVERTEU':'#d1fae5','converteu':'#d1fae5',
+  'NÃO CONVERTEU':'#fff1f2','nao-converteu':'#fff1f2',
+  'FOLLOW-UP 1':'#fff7ed','followup1':'#fff7ed',
+  'FOLLOW-UP 2':'#fffbeb','followup2':'#fffbeb',
+  'FOLLOW-UP 3':'#ede9fe','followup3':'#ede9fe',
+  'INDICAÇÃO':'#ccfbf1','indicacao':'#ccfbf1'
+};
 const PAY_COLORS = {'Cartão de Crédito':'#3b82f6','PIX':'#10b981','Dinheiro':'#f59e0b','Boleto':'#6366f1','Transferência':'#ec4899'};
 const LS_KEY = 'crm_omnicanal_v4';
 
@@ -2042,13 +2056,14 @@ const DEFAULT_STATE = {
     {id:'sl1',customerId:'c2',customerName:'Maria Oliveira',amount:49.90,paymentMethod:'PIX',date:new Date().toISOString(),serviceName:'Consulta Lentes',type:'Venda'},
   ],
   services: [
-    {id:'s1',name:'Pacote 4 Vídeos Persuasivos',duration:30,price:0,color:'#2563eb',description:'Pacote com 4 vídeos persuasivos para marketing'},
-    {id:'s2',name:'Pacote 5 Vídeos Persuasivos',duration:30,price:0,color:'#3b82f6',description:'Pacote com 5 vídeos persuasivos para marketing'},
-    {id:'s3',name:'Pacote 6 Vídeos Persuasivos',duration:30,price:0,color:'#6366f1',description:'Pacote com 6 vídeos persuasivos para marketing'},
-    {id:'s4',name:'Pacote 7 Vídeos Persuasivos',duration:30,price:0,color:'#8b5cf6',description:'Pacote com 7 vídeos persuasivos para marketing'},
-    {id:'s5',name:'Tráfego Pago',duration:30,price:0,color:'#f97316',description:'Gestão de tráfego pago e anúncios'},
-    {id:'s6',name:'Automação',duration:30,price:0,color:'#10b981',description:'Automação de marketing e processos'},
-    {id:'s7',name:'Social Mídia',duration:30,price:0,color:'#f59e0b',description:'Gestão de redes sociais'},
+    {id:'s1',name:'Pacote 4 Vídeos Persuasivos',duration:30,price:997,  color:'#2563eb',description:'Pacote com 4 vídeos persuasivos para marketing'},
+    {id:'s2',name:'Pacote 5 Vídeos Persuasivos',duration:30,price:1297, color:'#3b82f6',description:'Pacote com 5 vídeos persuasivos para marketing'},
+    {id:'s3',name:'Pacote 6 Vídeos Persuasivos',duration:30,price:1597, color:'#6366f1',description:'Pacote com 6 vídeos persuasivos para marketing'},
+    {id:'s4',name:'Pacote 7 Vídeos Persuasivos',duration:30,price:1997, color:'#8b5cf6',description:'Pacote com 7 vídeos persuasivos para marketing'},
+    {id:'s5',name:'Tráfego Pago',               duration:30,price:800,  color:'#f97316',description:'Gestão de tráfego pago e anúncios'},
+    {id:'s6',name:'Social Media',               duration:30,price:600,  color:'#f59e0b',description:'Gestão de redes sociais'},
+    {id:'s7',name:'Automação',                  duration:30,price:1500, color:'#10b981',description:'Automação de marketing e processos'},
+    {id:'s8',name:'CRM',                        duration:30,price:300,  color:'#0d9488',description:'Sistema CRM e gestão de clientes'},
   ],
   appointments: [
     {id:'ap1',customerId:'c1',customerName:'João Silva',customerPhone:'(11) 98765-4321',serviceId:'s1',serviceName:'Exame de Vista',date:new Date().toISOString().split('T')[0],time:'09:00',status:'scheduled'},
@@ -2365,10 +2380,13 @@ function goTo(tab) {
   if(window.innerWidth <= 768) closeMobileMenu();
   // Verificar permissão
   if (currentUser) {
-    const permitidas = currentUser.permissoes || PERMISSOES[currentUser.role] || [];
-    if (!permitidas.includes(tab)) {
-      toast('Você não tem permissão para acessar esta área.', 'error');
-      return;
+    // Admin e gestor têm acesso total sempre
+    if (currentUser.role !== 'admin' && currentUser.role !== 'gestor') {
+      const permitidas = PERMISSOES[currentUser.role] || [];
+      if (!permitidas.includes(tab)) {
+        toast('Você não tem permissão para acessar esta área.', 'error');
+        return;
+      }
     }
   }
   // Esconder todas as views
@@ -2458,14 +2476,30 @@ function renderDashboard() {
   const todayApps=state.appointments.filter(a=>sameDay(a.date,new Date())).length;
   const todayLeads=state.customers.filter(c=>sameDay(c.createdAt,new Date())).length;
 
+  // Metas salvas no localStorage
+  const lsMetas = (function(){
+    try { return JSON.parse(localStorage.getItem('ls_metas') || '{}'); } catch(e) { return {}; }
+  })();
+  const metaDia  = lsMetas.dia  || 0;
+  const metaSem  = lsMetas.semana || 0;
+  const metaMes  = lsMetas.mes  || 0;
+
+  // Faturamento do mês (de vendas no backend — usa state.sales como fallback)
+  const mesAgoraStr = new Date().toISOString().slice(0,7);
+  const fatMes = state.sales
+    ? state.sales.filter(s => s.createdAt && s.createdAt.slice(0,7)===mesAgoraStr)
+        .reduce((acc,s) => acc + (s.amount||0), 0)
+    : 0;
+  // Clientes fechados no mês (status CONVERTEU)
+  const clientesFechadosMes = state.customers
+    ? state.customers.filter(c => c.status==='CONVERTEU' && c.createdAt && c.createdAt.slice(0,7)===mesAgoraStr).length
+    : 0;
+
   const statsData=[
     {label:'Total de Leads',val:total,bg:'#eff6ff',col:'#2563eb',tab:'leads'},
     {label:'Leads Ativos',val:leads,bg:'#ede9fe',col:'#7c3aed',tab:'leads'},
     {label:'Follow-ups',val:fu,bg:'#fffbeb',col:'#d97706',tab:'leads'},
     {label:'Convertidos',val:conv,bg:'#ecfdf5',col:'#059669',tab:'leads'},
-    {label:'Taxa de Conversão',val:rate+'%',bg:'#eff6ff',col:'#2563eb',tab:'leads'},
-    {label:'Agendamentos Hoje',val:todayApps,bg:'#fdf4ff',col:'#9333ea',tab:'agenda'},
-    {label:'Novos Hoje',val:todayLeads,bg:'#fff1f2',col:'#e11d48',tab:'leads'},
   ];
 
   const statsEl = document.getElementById('dashStats');
@@ -2478,6 +2512,63 @@ function renderDashboard() {
       <div class="scard-val">${s.val}</div>
       <div class="scard-lbl">${s.label}</div>
     </div>`).join('');
+
+  // Renderizar meta cards abaixo das stats
+  var metaCard = document.getElementById('dashMetaCard');
+  if(metaCard) {
+    function metaPct(real, meta) { return meta > 0 ? Math.min(100, Math.round(real/meta*100)) : 0; }
+    function metaBar(pct, color) {
+      return `<div style="margin-top:6px;height:4px;background:#e4e4e7;border-radius:2px;overflow:hidden"><div style="height:4px;border-radius:2px;background:${color};width:${pct}%;transition:width .5s"></div></div>`;
+    }
+    function editMetaBtn(tipo, label) {
+      return `<button onclick="editarMeta('${tipo}','${label}')" style="font-size:10px;color:var(--blue);background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px" title="Editar meta">✏️</button>`;
+    }
+    const pctDia = metaPct(todayLeads, metaDia);
+    const pctSem = metaPct(conv, metaSem);
+    const pctMes = metaPct(clientesFechadosMes, metaMes);
+    const fatMesFormatted = typeof fmt === 'function' ? fmt(fatMes) : fatMes.toFixed(2);
+    metaCard.style.display = 'block';
+    metaCard.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+        <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta do Dia</div>
+            ${editMetaBtn('dia','Meta do Dia')}
+          </div>
+          <div style="font-size:20px;font-weight:800;color:#1e293b">${todayLeads}<span style="font-size:12px;color:#71717a">/${metaDia||'—'}</span></div>
+          ${metaBar(pctDia,'#2563eb')}
+          <div style="font-size:10px;color:#71717a;margin-top:3px">${pctDia}% atingido</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta da Semana</div>
+            ${editMetaBtn('semana','Meta da Semana')}
+          </div>
+          <div style="font-size:20px;font-weight:800;color:#1e293b">${conv}<span style="font-size:12px;color:#71717a">/${metaSem||'—'}</span></div>
+          ${metaBar(pctSem,'#f59e0b')}
+          <div style="font-size:10px;color:#71717a;margin-top:3px">${pctSem}% atingido</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta do Mês</div>
+            ${editMetaBtn('mes','Meta do Mês')}
+          </div>
+          <div style="font-size:20px;font-weight:800;color:#1e293b">${clientesFechadosMes}<span style="font-size:12px;color:#71717a">/${metaMes||'—'}</span></div>
+          ${metaBar(pctMes,'#10b981')}
+          <div style="font-size:10px;color:#71717a;margin-top:3px">${pctMes}% atingido</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Clientes Fechados (Mês)</div>
+          <div style="font-size:24px;font-weight:800;color:#10b981">${clientesFechadosMes}</div>
+          <div style="font-size:10px;color:#71717a;margin-top:3px">Convertidos neste mês</div>
+        </div>
+        <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
+          <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Faturamento do Mês</div>
+          <div style="font-size:18px;font-weight:800;color:#2563eb">R$ ${fatMesFormatted}</div>
+          <div style="font-size:10px;color:#71717a;margin-top:3px">Vendas fechadas neste mês</div>
+        </div>
+      </div>`;
+  }
 
   // Gráfico de barras — renderizado via Chart.js no final da função
   // (o canvas já existe no HTML: id="dashBarChart")
@@ -2562,11 +2653,13 @@ function updateHeader() {
 
 // ══════════════════════════ KANBAN ═══════════════════════════════════════════
 const COLS=[
-  {id:'CHEGOU',title:'Chegou'},
-  {id:'CONVERTEU',title:'Converteu'},
-  {id:'NÃO CONVERTEU',title:'Não Converteu'},
-  {id:'FOLLOW-UP 1',title:'Follow-up 1'},{id:'FOLLOW-UP 2',title:'Follow-up 2'},{id:'FOLLOW-UP 3',title:'Follow-up 3'},
-  {id:'INDICAÇÃO',title:'Indicação'},
+  {id:'CHEGOU',    title:'Quem Chegou',    color:'#2563eb'},
+  {id:'CONVERTEU', title:'Converteu',       color:'#10b981'},
+  {id:'NÃO CONVERTEU',title:'Não Converteu',color:'#f43f5e'},
+  {id:'FOLLOW-UP 1',title:'Follow-up 1',   color:'#f97316'},
+  {id:'FOLLOW-UP 2',title:'Follow-up 2',   color:'#f59e0b'},
+  {id:'FOLLOW-UP 3',title:'Follow-up 3',   color:'#8b5cf6'},
+  {id:'INDICAÇÃO', title:'Indicação',       color:'#0d9488'},
 ];
 
 function renderKanban(){
@@ -5292,6 +5385,22 @@ function _renderMetaMes() {
       +'<div style="margin-top:8px;height:4px;background:var(--z100);border-radius:2px">'
       +'<div style="height:4px;border-radius:2px;background:'+(pct>=100?'#2563eb':'#d97706')+';width:'+pct+'%;transition:width .5s"></div></div>';
   }
+}
+
+// ── Função para editar metas via prompt ──────────────────────────────────────
+function editarMeta(tipo, label) {
+  try {
+    const lsMetas = JSON.parse(localStorage.getItem('ls_metas') || '{}');
+    const atual = lsMetas[tipo] || 0;
+    const novoVal = prompt(`${label} — valor atual: ${atual}\nDigite a nova meta (número):`, atual);
+    if (novoVal === null) return;
+    const num = parseInt(novoVal, 10);
+    if (isNaN(num) || num < 0) { toast('Valor inválido', 'error'); return; }
+    lsMetas[tipo] = num;
+    localStorage.setItem('ls_metas', JSON.stringify(lsMetas));
+    renderDashboard();
+    toast(`${label} atualizada para ${num}!`, 'success');
+  } catch(e) { toast('Erro ao salvar meta', 'error'); }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

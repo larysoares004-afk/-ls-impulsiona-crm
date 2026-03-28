@@ -1,5 +1,5 @@
-// Service Worker — Grupo RM Clínica CRM
-const CACHE = 'rm-crm-v1';
+// Service Worker — LS Impulsiona CRM
+const CACHE = 'ls-crm-v4';
 const OFFLINE_ASSETS = ['/'];
 
 self.addEventListener('install', e => {
