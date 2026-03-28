@@ -1,17 +1,37 @@
 // ════════════════════════════════════════════════════════════════════════════════
-// DASHBOARD v2 - JavaScript das novas funcionalidades
+// DASHBOARD v2 - JavaScript das novas funcionalidades LS Impulsiona
 // ════════════════════════════════════════════════════════════════════════════════
+
+// Pontos por servico (sistema de ranking)
+const PONTOS_SERVICO = {
+  'Pacote 4 Vídeos Persuasivos': 4,
+  'Pacote 5 Vídeos Persuasivos': 5,
+  'Pacote 6 Vídeos Persuasivos': 6,
+  'Pacote 7 Vídeos Persuasivos': 7,
+  'Tráfego Pago':   3,
+  'Social Media':   3,
+  'Automação':      5,
+  'CRM':            1,
+};
+
+function getPontosServico(servico) {
+  if (!servico) return 1;
+  for (const [key, pts] of Object.entries(PONTOS_SERVICO)) {
+    if (servico.toLowerCase().includes(key.toLowerCase())) return pts;
+  }
+  return 1;
+}
 
 // Renderizar Dashboard v2 com gráficos e KPIs
 async function renderDashboardV2() {
   try {
-    const res = await fetch('/api/dashboard/resumo', { headers: { 'Authorization': `Bearer ${currentUser.token || localStorage.getItem('token')}` } });
+    const res = await _api('/api/dashboard/resumo');
     const data = await res.json();
     if (!data || data.error) throw new Error(data.error || 'Erro ao carregar resumo');
 
     const html = `
     <div class="ph">
-      <div><h1 class="ptitle">📊 Dashboard</h1></div>
+      <div><h1 class="ptitle">Dashboard Resumo</h1></div>
     </div>
 
     <div class="g4" style="margin-bottom: 24px;">
@@ -51,12 +71,12 @@ async function renderDashboardV2() {
 
     <div class="g2" style="margin-bottom: 24px;">
       <div style="background: #fff; border-radius: 16px; border: 1px solid #e4e4e7; padding: 16px;">
-        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Conversões (7 dias)</h3>
+        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Conversoes (7 dias)</h3>
         <canvas id="chartConversoes" height="200"></canvas>
       </div>
 
       <div style="background: #fff; border-radius: 16px; border: 1px solid #e4e4e7; padding: 16px;">
-        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Top Atendentes</h3>
+        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Ranking</h3>
         <div id="rankingMini"></div>
       </div>
     </div>
@@ -64,50 +84,39 @@ async function renderDashboardV2() {
 
     document.getElementById('view-dashboard-v2').innerHTML = html;
 
-    // Carregar gráficos
     setTimeout(async () => {
-      const convRes = await fetch('/api/dashboard/grafico-conversoes', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
-      const conv = await convRes.json();
+      try {
+        const convRes = await _api('/api/dashboard/grafico-conversoes');
+        const conv = await convRes.json();
 
-      if (window.Chart) {
-        new Chart(document.getElementById('chartConversoes'), {
-          type: 'line',
-          data: {
-            labels: conv.map(c => new Date(c.data).toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })),
-            datasets: [
-              {
-                label: 'Vendas',
-                data: conv.map(c => c.vendas),
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(22, 163, 74, 0.1)',
-                tension: 0.4
-              },
-              {
-                label: 'Leads',
-                data: conv.map(c => c.leads),
-                borderColor: '#0284c7',
-                backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                tension: 0.4
-              }
-            ]
-          },
-          options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: true, position: 'top' } } }
-        });
-      }
+        if (window.Chart) {
+          new Chart(document.getElementById('chartConversoes'), {
+            type: 'line',
+            data: {
+              labels: conv.map(c => new Date(c.data + 'T12:00').toLocaleDateString('pt-BR', { month: 'short', day: '2-digit' })),
+              datasets: [
+                { label: 'Vendas', data: conv.map(c => c.vendas), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.4 },
+                { label: 'Leads',  data: conv.map(c => c.leads),  borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.4 }
+              ]
+            },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: true, position: 'top' } } }
+          });
+        }
+      } catch(e) {}
 
-      // Ranking mini
-      const rankRes = await fetch('/api/dashboard/ranking-atendentes?periodo=mes', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
-      const ranking = await rankRes.json();
-
-      document.getElementById('rankingMini').innerHTML = ranking.slice(0, 5).map((r, idx) => `
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f4f4f5;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${['#fbbf24', '#d1d5db', '#f97316', '#93c5fd', '#c4b5fd'][idx] || '#e5e7eb'}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">${idx+1}º</div>
-            <div style="font-size: 12px; font-weight: 600;">${r.nome}</div>
+      try {
+        const rankRes = await _api('/api/ranking');
+        const ranking = await rankRes.json();
+        document.getElementById('rankingMini').innerHTML = ranking.slice(0, 4).map((r, idx) => `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f4f4f5;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 28px; height: 28px; border-radius: 50%; background: ${['#fbbf24', '#9ca3af', '#f97316', '#93c5fd'][idx] || '#e5e7eb'}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px;">${['🥇','🥈','🥉','4º'][idx]||idx+1}</div>
+              <div style="font-size: 12px; font-weight: 600;">${r.nome}</div>
+            </div>
+            <div style="font-size: 14px; font-weight: 700; color: #2563eb;">${r.pontos} pts</div>
           </div>
-          <div style="font-size: 14px; font-weight: 700; color: #2563eb;">${r.pontos} pts</div>
-        </div>
-      `).join('');
+        `).join('');
+      } catch(e) {}
     }, 100);
   } catch(e) {
     console.error('Erro ao renderizar dashboard v2:', e);
@@ -115,42 +124,50 @@ async function renderDashboardV2() {
   }
 }
 
+// Helper para fetch com token
+function _api(url, opts) {
+  const token = (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
+    ? currentUser.token
+    : (typeof localStorage !== 'undefined' ? localStorage.getItem('alliance_token') : '');
+  return fetch(url, { ...opts, headers: { 'Authorization': 'Bearer ' + (token || ''), 'Content-Type': 'application/json', ...(opts && opts.headers) } });
+}
+
 // Renderizar aba "Que chegou" (Leads com filtros)
 async function renderQueChegou() {
   try {
-    const res = await fetch('/api/leads', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
+    const res = await _api('/api/leads');
     const leads = await res.json();
 
     const totalLeads = leads.length;
     const html = `
     <div class="ph">
       <div>
-        <h1 class="ptitle">📞 Que Chegou</h1>
+        <h1 class="ptitle">Que Chegou</h1>
         <div class="psub">Total de leads: <strong style="color:var(--blue)">${totalLeads}</strong></div>
       </div>
       <div style="display: flex; gap: 8px;">
-        <select id="filtroStatus" onchange="renderQueChegou()" class="inp" style="max-width: 150px;">
+        <select id="filtroStatus" onchange="renderQueChegou()" class="inp" style="max-width: 160px;">
           <option value="">Todos</option>
           <option value="CHEGOU">Chegou</option>
           <option value="CONVERTEU">Converteu</option>
-          <option value="NÃO CONVERTEU">Não Converteu</option>
+          <option value="NÃO CONVERTEU">Nao Converteu</option>
           <option value="FOLLOW-UP 1">Follow-up 1</option>
           <option value="FOLLOW-UP 2">Follow-up 2</option>
           <option value="FOLLOW-UP 3">Follow-up 3</option>
-          <option value="INDICAÇÃO">Indicação</option>
+          <option value="INDICAÇÃO">Indicacao</option>
         </select>
       </div>
     </div>
 
-    <div style="background: #fff; border-radius: 14px; overflow: hidden;">
+    <div style="background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05);">
       <table style="width: 100%; border-collapse: collapse;">
         <thead style="background: #f9fafb;">
           <tr>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Nome</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Telefone</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Valor</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Status</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Data</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Nome</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Telefone</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Valor</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Status</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Data</th>
           </tr>
         </thead>
         <tbody id="tabelaLeads"></tbody>
@@ -165,14 +182,14 @@ async function renderQueChegou() {
       const filtered = filtro ? leads.filter(l => l.status === filtro) : leads;
 
       document.getElementById('tabelaLeads').innerHTML = filtered.map(l => `
-        <tr style="border-top: 1px solid #f3f4f6; cursor: pointer;" onclick="alert('Detalhes do lead: ' + '${l.nome}')">
-          <td style="padding: 12px; font-size: 13px;">${l.nome}</td>
-          <td style="padding: 12px; font-size: 13px;">${fmtPhone(l.telefone)}</td>
-          <td style="padding: 12px; font-size: 13px;">R$ ${fmt(l.valor)}</td>
+        <tr style="border-top: 1px solid #f3f4f6; cursor: pointer;" onclick="viewLead && viewLead('${l.id}')">
+          <td style="padding: 12px; font-size: 13px; font-weight: 600;">${l.nome||''}</td>
+          <td style="padding: 12px; font-size: 13px;">${typeof fmtPhone==='function'?fmtPhone(l.telefone||''):l.telefone||''}</td>
+          <td style="padding: 12px; font-size: 13px; color: #059669; font-weight: 700;">R$ ${typeof fmt==='function'?fmt(l.valor||0):(l.valor||0)}</td>
           <td style="padding: 12px; font-size: 13px;">
-            <span style="padding: 3px 8px; border-radius: 6px; background: ${STATUS_BG[l.status]||'#f3f4f6'}; color: ${STATUS_COLORS[l.status]||'#6b7280'}; font-size: 11px; font-weight: 600;">${l.status}</span>
+            <span style="padding: 3px 8px; border-radius: 6px; background: ${(typeof STATUS_BG!=='undefined'&&STATUS_BG[l.status])||'#f3f4f6'}; color: ${(typeof STATUS_COLORS!=='undefined'&&STATUS_COLORS[l.status])||'#6b7280'}; font-size: 11px; font-weight: 600;">${l.status||''}</span>
           </td>
-          <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${fmtDate(l.criado_em)}</td>
+          <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${typeof fmtDate==='function'?fmtDate(l.criado_em):l.criado_em||''}</td>
         </tr>
       `).join('') || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #9ca3af;">Nenhum lead</td></tr>';
     }, 10);
@@ -185,24 +202,23 @@ async function renderQueChegou() {
 // Renderizar aba "Se converteu" (Vendas)
 async function renderSeConverteu() {
   try {
-    const res = await fetch('/api/vendas', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
+    const res = await _api('/api/vendas');
     const vendas = await res.json();
 
     const html = `
     <div class="ph">
-      <div><h1 class="ptitle">✅ Se converteu</h1></div>
-      <button class="btn btn-primary" onclick="abrirModalPagamento()">💳 Registrar Pagamento</button>
+      <div><h1 class="ptitle">Se converteu</h1></div>
     </div>
 
-    <div style="background: #fff; border-radius: 14px; overflow-x: auto;">
+    <div style="background: #fff; border-radius: 14px; overflow-x: auto; box-shadow: 0 1px 4px rgba(0,0,0,.05);">
       <table style="width: 100%; border-collapse: collapse;">
         <thead style="background: #f9fafb;">
           <tr>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Cliente</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Valor</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Pagamento</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Data</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Ações</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Cliente</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Valor</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Servico</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Pagamento</th>
+            <th style="padding: 12px; text-align: left; font-size: 11px; font-weight: 700; color: #6b7280;">Data</th>
           </tr>
         </thead>
         <tbody id="tabelaVendas"></tbody>
@@ -215,14 +231,11 @@ async function renderSeConverteu() {
     setTimeout(() => {
       document.getElementById('tabelaVendas').innerHTML = vendas.map(v => `
         <tr style="border-top: 1px solid #f3f4f6;">
-          <td style="padding: 12px; font-size: 13px;">${v.cliente_nome}</td>
-          <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #2563eb;">R$ ${fmt(v.valor)}</td>
-          <td style="padding: 12px; font-size: 13px;">${v.pagamento}</td>
-          <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${fmtDate(v.criado_em)}</td>
-          <td style="padding: 12px; font-size: 12px;">
-            <button class="btn btn-ghost" onclick="registrarPagamento(${v.id})">Pagar</button>
-            <button class="btn btn-ghost" onclick="enviarVideo(${v.id})">Vídeo</button>
-          </td>
+          <td style="padding: 12px; font-size: 13px; font-weight: 600;">${v.cliente_nome||''}</td>
+          <td style="padding: 12px; font-size: 13px; font-weight: 700; color: #2563eb;">R$ ${typeof fmt==='function'?fmt(v.valor):v.valor}</td>
+          <td style="padding: 12px; font-size: 13px; color: #52525b;">${v.servico||'—'}</td>
+          <td style="padding: 12px; font-size: 13px;">${v.pagamento||''}</td>
+          <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${typeof fmtDate==='function'?fmtDate(v.criado_em):v.criado_em||''}</td>
         </tr>
       `).join('') || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #9ca3af;">Nenhuma venda</td></tr>';
     }, 10);
@@ -232,154 +245,437 @@ async function renderSeConverteu() {
   }
 }
 
-// Renderizar aba "Vídeos"
+// Renderizar aba "Videos"
 async function renderVideos() {
-  const html = `
-    <div class="ph">
-      <div><h1 class="ptitle">🎥 Vídeos</h1></div>
-      <button class="btn btn-primary" onclick="abrirModalVideo()">📅 Agendar Entrega</button>
-    </div>
+  let videos = [];
+  try {
+    const res = await _api('/api/videos');
+    videos = await res.json();
+  } catch(e) { videos = []; }
 
-    <div id="calendarVideos" style="background: #fff; border-radius: 14px; padding: 16px;">
-      <div style="text-align: center; color: #9ca3af;">Calendário de vídeos em desenvolvimento...</div>
+  const html = `
+  <div class="ph">
+    <div><h1 class="ptitle">Videos</h1><div class="psub">Gestao de videos crus e prontos</div></div>
+    <button class="btn btn-primary" onclick="abrirModalVideo()">+ Novo Video</button>
+  </div>
+
+  <!-- Secao Videos Crus -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">
+      <div class="card-title">Videos Crus</div>
+      <span style="font-size:11px;color:var(--z500)">Aguardando edicao</span>
     </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${videos.filter(v => v.status==='Cru' || v.status==='CRU' || !v.status || v.status==='AGUARDANDO').map(v => `
+            <tr>
+              <td style="font-weight:600">${v.cliente_nome||''}</td>
+              <td>${typeof fmtDate==='function'?fmtDate(v.criado_em||v.data_entrega):v.criado_em||''}</td>
+              <td><span style="padding:2px 8px;border-radius:6px;background:#fef3c7;color:#d97706;font-size:10px;font-weight:700">Cru</span></td>
+              <td>
+                <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="marcarVideoPronto(${v.id})">Marcar Pronto</button>
+                <button class="btn btn-danger" style="font-size:11px;padding:4px 8px" onclick="deletarVideo(${v.id})">Excluir</button>
+              </td>
+            </tr>
+          `).join('') || '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--z400)">Nenhum video cru</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Secao Videos Prontos -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Videos Prontos</div>
+      <span style="font-size:11px;color:var(--z500)">Editados e prontos para entrega</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Data Entrega</th>
+            <th>Status</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${videos.filter(v => v.status==='Pronto' || v.status==='PRONTO' || v.status==='ENVIADO').map(v => `
+            <tr>
+              <td style="font-weight:600">${v.cliente_nome||''}</td>
+              <td>${v.data_entrega||typeof fmtDate==='function'?fmtDate(v.criado_em):v.criado_em||''}</td>
+              <td><span style="padding:2px 8px;border-radius:6px;background:#d1fae5;color:#065f46;font-size:10px;font-weight:700">${v.status==='ENVIADO'?'Enviado':'Pronto'}</span></td>
+              <td>
+                <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="enviarVideoCliente(${v.id}, this.dataset.nome)" data-nome="${(v.cliente_nome||'').replace(/"/g,'&quot;')}">Enviar para Cliente</button>
+              </td>
+            </tr>
+          `).join('') || '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--z400)">Nenhum video pronto</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal novo video -->
+  <div id="modalNovoVideo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:800">Novo Video</div>
+        <button onclick="fecharModalVideo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--z400)">x</button>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label class="lbl">Nome do Cliente</label>
+          <input type="text" id="videoCliente" class="inp" placeholder="Nome do cliente">
+        </div>
+        <div>
+          <label class="lbl">Tipo</label>
+          <select id="videoTipo" class="inp">
+            <option value="Cru">Cru (bruto)</option>
+            <option value="Pronto">Pronto (editado)</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Link do Video (opcional)</label>
+          <input type="url" id="videoUrl" class="inp" placeholder="https://drive.google.com/...">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-primary" style="flex:1" onclick="salvarNovoVideo()">Salvar</button>
+        <button class="btn btn-ghost" onclick="fecharModalVideo()">Cancelar</button>
+      </div>
+    </div>
+  </div>
   `;
 
   document.getElementById('view-videos').innerHTML = html;
 }
 
-// Renderizar aba "Indicações"
-async function renderIndicacoes() {
+function abrirModalVideo() {
+  const m = document.getElementById('modalNovoVideo');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function fecharModalVideo() {
+  const m = document.getElementById('modalNovoVideo');
+  if (m) { m.style.display = 'none'; }
+}
+
+async function salvarNovoVideo() {
+  const cliente = (document.getElementById('videoCliente')?.value || '').trim();
+  const tipo    = document.getElementById('videoTipo')?.value || 'Cru';
+  const url     = (document.getElementById('videoUrl')?.value || '').trim();
+  if (!cliente) { toast('Nome do cliente obrigatorio', 'error'); return; }
   try {
-    const res = await fetch('/api/indicacoes', { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
-    const indicacoes = await res.json();
+    const res = await _api('/api/videos', {
+      method: 'POST',
+      body: JSON.stringify({ cliente_nome: cliente, tipo, url, status: tipo })
+    });
+    const d = await res.json();
+    if (d.ok) { toast('Video cadastrado!', 'success'); fecharModalVideo(); renderVideos(); }
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
 
-    const html = `
-    <div class="ph">
-      <div><h1 class="ptitle">👥 Indicações</h1></div>
-      <button class="btn btn-primary" onclick="abrirModalIndicacao()">➕ Nova Indicação</button>
-    </div>
+async function marcarVideoPronto(id) {
+  try {
+    const res = await _api(`/api/videos/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'Pronto' }) });
+    const d = await res.json();
+    if (d.ok) { toast('Video marcado como pronto!', 'success'); renderVideos(); }
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
 
-    <div style="background: #fff; border-radius: 14px; overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead style="background: #f9fafb;">
+async function deletarVideo(id) {
+  if (!confirm('Excluir este video?')) return;
+  try {
+    const res = await _api(`/api/videos/${id}`, { method: 'DELETE' });
+    const d = await res.json();
+    if (d.ok) { toast('Video excluido', 'success'); renderVideos(); }
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function enviarVideoCliente(id, clienteNome) {
+  const msg = `Ola ${clienteNome}! Seu video esta pronto. Em breve enviaremos o link de acesso.`;
+  const wpp = encodeURIComponent(msg);
+  toast('Video marcado como enviado!', 'success');
+  _api(`/api/videos/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'ENVIADO' }) })
+    .then(() => renderVideos()).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════
+// INDICACOES
+// ═══════════════════════════════════════════════════════
+
+async function renderIndicacoes() {
+  let indicacoes = [];
+  try {
+    const res = await _api('/api/indicacoes');
+    indicacoes = await res.json();
+  } catch(e) { indicacoes = []; }
+
+  const STATUS_IND = {
+    'em_negociacao': { label: 'Em negociacao', bg: '#fef3c7', col: '#d97706' },
+    'fechou':        { label: 'Fechou',         bg: '#d1fae5', col: '#065f46' },
+    'nao_fechou':    { label: 'Nao fechou',     bg: '#fee2e2', col: '#991b1b' },
+    'LEAD':          { label: 'Lead',            bg: '#dbeafe', col: '#1e40af' },
+  };
+
+  const html = `
+  <div class="ph">
+    <div><h1 class="ptitle">Indicacoes</h1><div class="psub">Programa de indicacoes da LS Impulsiona</div></div>
+    <button class="btn btn-primary" onclick="abrirModalIndicacao()">+ Nova Indicacao</button>
+  </div>
+
+  <div class="card">
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
           <tr>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Quem Indicou</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Novo Cliente</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Telefone</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Status</th>
-            <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Data</th>
+            <th>Quem Indicou</th>
+            <th>Indicou Para</th>
+            <th>Status</th>
+            <th>Desconto (%)</th>
+            <th>Data</th>
+            <th>Acoes</th>
           </tr>
         </thead>
-        <tbody id="tabelaIndicacoes"></tbody>
+        <tbody>
+          ${indicacoes.map(i => {
+            const st = STATUS_IND[i.status] || STATUS_IND['em_negociacao'];
+            return `<tr>
+              <td style="font-weight:600">${i.quem_indicou || i.venda_id_indicador || '—'}</td>
+              <td>${i.indicado_para || i.novo_cliente_nome || '—'}</td>
+              <td><span style="padding:3px 8px;border-radius:6px;background:${st.bg};color:${st.col};font-size:11px;font-weight:700">${st.label}</span></td>
+              <td style="text-align:center">${i.desconto_percentual||0}%</td>
+              <td style="color:#9ca3af">${typeof fmtDate==='function'?fmtDate(i.criado_em):i.criado_em||''}</td>
+              <td>
+                <select onchange="atualizarStatusIndicacao(${i.id}, this.value)" class="inp" style="font-size:11px;padding:3px 6px;max-width:130px">
+                  <option ${i.status==='em_negociacao'?'selected':''} value="em_negociacao">Em negociacao</option>
+                  <option ${i.status==='fechou'?'selected':''} value="fechou">Fechou</option>
+                  <option ${i.status==='nao_fechou'?'selected':''} value="nao_fechou">Nao fechou</option>
+                </select>
+              </td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--z400)">Nenhuma indicacao cadastrada</td></tr>'}
+        </tbody>
       </table>
     </div>
-    `;
+  </div>
 
-    document.getElementById('view-indicacoes').innerHTML = html;
+  <!-- Modal nova indicacao -->
+  <div id="modalNovaIndicacao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:800">Nova Indicacao</div>
+        <button onclick="fecharModalIndicacao()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--z400)">x</button>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label class="lbl">Quem Indicou</label>
+          <input type="text" id="indQuemIndicou" class="inp" placeholder="Nome do cliente que indicou">
+        </div>
+        <div>
+          <label class="lbl">Indicou Para</label>
+          <input type="text" id="indIndicadoPara" class="inp" placeholder="Nome do novo cliente indicado">
+        </div>
+        <div>
+          <label class="lbl">Status</label>
+          <select id="indStatus" class="inp">
+            <option value="em_negociacao">Em negociacao</option>
+            <option value="fechou">Fechou</option>
+            <option value="nao_fechou">Nao fechou</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Desconto (%) para quem indicou</label>
+          <input type="number" id="indDesconto" class="inp" placeholder="0" min="0" max="100" value="0">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-primary" style="flex:1" onclick="salvarNovaIndicacao()">Salvar</button>
+        <button class="btn btn-ghost" onclick="fecharModalIndicacao()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  `;
 
-    setTimeout(() => {
-      document.getElementById('tabelaIndicacoes').innerHTML = indicacoes.map(i => `
-        <tr style="border-top: 1px solid #f3f4f6;">
-          <td style="padding: 12px; font-size: 13px;">Cliente ID: ${i.venda_id_indicador}</td>
-          <td style="padding: 12px; font-size: 13px;">${i.novo_cliente_nome}</td>
-          <td style="padding: 12px; font-size: 13px;">${fmtPhone(i.novo_cliente_tel)}</td>
-          <td style="padding: 12px; font-size: 13px;">
-            <span style="padding: 3px 8px; border-radius: 6px; background: #f3f4f6; color: #6b7280; font-size: 11px; font-weight: 600;">${i.status}</span>
-          </td>
-          <td style="padding: 12px; font-size: 13px; color: #9ca3af;">${fmtDate(i.criado_em)}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #9ca3af;">Nenhuma indicação</td></tr>';
-    }, 10);
-  } catch(e) {
-    console.error('Erro:', e);
-    toast(e.message, 'error');
-  }
+  document.getElementById('view-indicacoes').innerHTML = html;
 }
 
-// Renderizar aba "Ranking"
-async function renderRanking() {
+function abrirModalIndicacao() {
+  const m = document.getElementById('modalNovaIndicacao');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function fecharModalIndicacao() {
+  const m = document.getElementById('modalNovaIndicacao');
+  if (m) { m.style.display = 'none'; }
+}
+
+async function salvarNovaIndicacao() {
+  const quem  = (document.getElementById('indQuemIndicou')?.value || '').trim();
+  const para  = (document.getElementById('indIndicadoPara')?.value || '').trim();
+  const status = document.getElementById('indStatus')?.value || 'em_negociacao';
+  const desc  = parseFloat(document.getElementById('indDesconto')?.value || '0') || 0;
+  if (!quem || !para) { toast('Preencha quem indicou e para quem', 'error'); return; }
   try {
-    const periodo = document.getElementById('filtroRanking')?.value || 'mes';
-    const res = await fetch(`/api/dashboard/ranking-atendentes?periodo=${periodo}`, { headers: { 'Authorization': `Bearer ${currentUser.token}` } });
-    const ranking = await res.json();
+    const res = await _api('/api/indicacoes', {
+      method: 'POST',
+      body: JSON.stringify({ quem_indicou: quem, indicado_para: para, status, desconto_percentual: desc })
+    });
+    const d = await res.json();
+    if (d.ok) { toast('Indicacao salva!', 'success'); fecharModalIndicacao(); renderIndicacoes(); }
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
 
-    const html = `
-    <div class="ph">
-      <div><h1 class="ptitle">🏆 Ranking</h1></div>
-      <select id="filtroRanking" onchange="renderRanking()" class="inp" style="max-width: 150px;">
-        <option value="dia">Hoje</option>
-        <option value="semana">Semana</option>
-        <option value="mes" selected>Mês</option>
-        <option value="tudo">Tudo</option>
-      </select>
-    </div>
+async function atualizarStatusIndicacao(id, status) {
+  try {
+    const res = await _api(`/api/indicacoes/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    const d = await res.json();
+    if (d.ok) toast('Status atualizado!', 'success');
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
 
-    <div class="g2" style="margin-bottom: 24px;">
-      <div style="background: #fff; border-radius: 14px; border: 1px solid #e4e4e7; padding: 16px;">
-        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Top Atendentes</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead style="background: #f9fafb;">
+// ═══════════════════════════════════════════════════════
+// RANKING
+// ═══════════════════════════════════════════════════════
+
+async function renderRanking() {
+  let ranking = [];
+  try {
+    const res = await _api('/api/ranking');
+    ranking = await res.json();
+  } catch(e) { ranking = []; }
+
+  const isAdmin = typeof currentUser !== 'undefined' && currentUser && ['admin','gestor'].includes(currentUser.role);
+  const medalhas = ['🥇', '🥈', '🥉'];
+  const medalBg = ['#fbbf24', '#9ca3af', '#f97316', '#93c5fd'];
+
+  const html = `
+  <div class="ph">
+    <div><h1 class="ptitle">Ranking</h1><div class="psub">Pontuacao dos atendentes LS Impulsiona</div></div>
+    ${isAdmin ? '<span style="font-size:11px;color:var(--z500)">Clique nos pontos para editar</span>' : ''}
+  </div>
+
+  <div class="g2">
+    <div class="card" style="flex:1">
+      <div class="card-hdr">
+        <div class="card-title">Top Atendentes</div>
+        <div class="card-sub">Daniel · Gabriel · Pedro · Kim</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead>
             <tr>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Posição</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Atendente</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Vendas</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #6b7280;">Pontos</th>
+              <th>Posicao</th>
+              <th>Atendente</th>
+              <th>Vendas</th>
+              <th>Pontos</th>
+              ${isAdmin ? '<th>Editar</th>' : ''}
             </tr>
           </thead>
-          <tbody id="tabelaRanking"></tbody>
+          <tbody>
+            ${ranking.map((r, idx) => `
+              <tr style="border-top: 1px solid #f3f4f6;">
+                <td style="padding: 12px; font-size: 18px; text-align:center;">${medalhas[idx] || idx+1+'º'}</td>
+                <td style="padding: 12px; font-size: 13px; font-weight: 700;">${r.nome}</td>
+                <td style="padding: 12px; font-size: 13px; color: #0284c7; font-weight: 600;">${r.vendas || 0}</td>
+                <td style="padding: 12px; font-size: 14px; font-weight: 800; color: #2563eb;">
+                  ${isAdmin
+                    ? `<span onclick="editarPontosRanking(${r.id}, '${r.nome}', ${r.pontos}, ${r.vendas})" style="cursor:pointer;border-bottom:1px dashed #2563eb" title="Clique para editar">${r.pontos}</span>`
+                    : r.pontos
+                  } pts
+                </td>
+                ${isAdmin ? `<td style="padding:12px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="editarPontosRanking(${r.id},'${r.nome}',${r.pontos},${r.vendas})">Editar</button></td>` : ''}
+              </tr>
+            `).join('') || '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--z400)">Sem dados de ranking</td></tr>'}
+          </tbody>
         </table>
       </div>
+    </div>
 
-      <div style="background: #fff; border-radius: 14px; border: 1px solid #e4e4e7; padding: 16px;">
-        <h3 style="font-weight: 700; margin-bottom: 16px; font-size: 14px;">Gráfico Comparativo</h3>
-        <canvas id="chartRanking" height="200"></canvas>
+    <div class="card" style="flex:1">
+      <div class="card-hdr"><div class="card-title">Grafico Comparativo</div></div>
+      <div class="card-body" style="height:260px;position:relative">
+        <canvas id="chartRanking"></canvas>
+      </div>
+      <div class="card-body" style="border-top:1px solid var(--z100)">
+        <div style="font-size:11px;font-weight:700;color:var(--z600);margin-bottom:8px">Sistema de Pontos por Servico</div>
+        ${Object.entries(PONTOS_SERVICO).map(([s,p]) => `
+          <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;color:var(--z600)">
+            <span>${s}</span>
+            <span style="font-weight:700;color:#2563eb">${p} pts</span>
+          </div>
+        `).join('')}
       </div>
     </div>
-    `;
+  </div>
+  `;
 
-    document.getElementById('view-ranking').innerHTML = html;
+  document.getElementById('view-ranking').innerHTML = html;
 
-    setTimeout(() => {
-      document.getElementById('tabelaRanking').innerHTML = ranking.map((r, idx) => `
-        <tr style="border-top: 1px solid #f3f4f6;">
-          <td style="padding: 12px; font-size: 13px;">
-            <span style="padding: 4px 10px; border-radius: 6px; background: ${['#fbbf24', '#d1d5db', '#f97316', '#93c5fd', '#c4b5fd'][idx] || '#e5e7eb'}; color: #fff; font-weight: 700; font-size: 11px;">${idx+1}º</span>
-          </td>
-          <td style="padding: 12px; font-size: 13px; font-weight: 600;">${r.nome}</td>
-          <td style="padding: 12px; font-size: 13px; color: #0284c7;">${r.vendas || r.total_vendas || 0}</td>
-          <td style="padding: 12px; font-size: 13px; font-weight: 700; color: #2563eb;">${r.pontos} pts</td>
-        </tr>
-      `).join('');
-
-      if (window.Chart && ranking.length > 0) {
-        new Chart(document.getElementById('chartRanking'), {
-          type: 'bar',
-          data: {
-            labels: ranking.slice(0, 10).map(r => r.nome.split(' ')[0]),
-            datasets: [{
-              label: 'Pontos',
-              data: ranking.slice(0, 10).map(r => r.pontos),
-              backgroundColor: '#2563eb'
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y', plugins: { legend: { display: false } } }
-        });
-      }
-    }, 10);
-  } catch(e) {
-    console.error('Erro:', e);
-    toast(e.message, 'error');
-  }
+  setTimeout(() => {
+    if (window.Chart && ranking.length > 0 && document.getElementById('chartRanking')) {
+      new Chart(document.getElementById('chartRanking'), {
+        type: 'bar',
+        data: {
+          labels: ranking.map(r => r.nome),
+          datasets: [{
+            label: 'Pontos',
+            data: ranking.map(r => r.pontos),
+            backgroundColor: ['#fbbf24', '#9ca3af', '#f97316', '#93c5fd'],
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  }, 50);
 }
 
-// Funções auxiliares
+async function editarPontosRanking(id, nome, pontosAtual, vendasAtual) {
+  const novosPontos = prompt(`Editar pontos de ${nome}\nPontos atuais: ${pontosAtual}\n\nDigite os novos pontos:`, pontosAtual);
+  if (novosPontos === null) return;
+  const pts = parseFloat(novosPontos);
+  if (isNaN(pts)) { toast('Valor invalido', 'error'); return; }
+
+  const novasVendas = prompt(`Editar vendas de ${nome}\nVendas atuais: ${vendasAtual}\n\nDigite as novas vendas (ou deixe igual):`, vendasAtual);
+  const vds = novasVendas !== null ? parseInt(novasVendas, 10) : vendasAtual;
+
+  try {
+    const res = await _api(`/api/ranking/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ pontos: pts, vendas: isNaN(vds) ? vendasAtual : vds })
+    });
+    const d = await res.json();
+    if (d.ok) { toast(`Ranking de ${nome} atualizado!`, 'success'); renderRanking(); }
+    else toast(d.error || 'Erro', 'error');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Funcoes auxiliares (mantidas para compatibilidade)
 function registrarPagamento(vendaId) {
   const data = prompt('Data do pagamento (YYYY-MM-DD):');
   if (data) {
-    fetch('/api/pagamentos', {
+    _api('/api/pagamentos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentUser.token}` },
       body: JSON.stringify({ venda_id: vendaId, data_pagamento: data, forma_pagamento: 'Confirmado' })
     }).then(r => r.json()).then(d => {
       if (d.ok) { toast('Pagamento registrado!', 'success'); renderSeConverteu(); }
@@ -389,27 +685,14 @@ function registrarPagamento(vendaId) {
 }
 
 function enviarVideo(vendaId) {
-  const data = prompt('Data de entrega do vídeo (YYYY-MM-DD):');
+  const data = prompt('Data de entrega do video (YYYY-MM-DD):');
   if (data) {
-    fetch('/api/videos/enviar', {
+    _api('/api/videos/enviar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentUser.token}` },
-      body: JSON.stringify({ venda_id: vendaId, data_entrega: data, tipo: 'Padrão' })
+      body: JSON.stringify({ venda_id: vendaId, data_entrega: data, tipo: 'Padrao' })
     }).then(r => r.json()).then(d => {
-      if (d.ok) { toast('Vídeo agendado!', 'success'); renderSeConverteu(); }
+      if (d.ok) { toast('Video agendado!', 'success'); renderSeConverteu(); }
       else toast(d.error || 'Erro', 'error');
     });
   }
-}
-
-function abrirModalPagamento() {
-  toast('Funcionalidade em desenvolvimento', 'info');
-}
-
-function abrirModalVideo() {
-  toast('Funcionalidade em desenvolvimento', 'info');
-}
-
-function abrirModalIndicacao() {
-  toast('Funcionalidade em desenvolvimento', 'info');
 }
