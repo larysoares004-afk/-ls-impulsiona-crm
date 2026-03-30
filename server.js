@@ -283,9 +283,16 @@ db.exec(`CREATE TABLE IF NOT EXISTS indicacoes (
   novo_cliente_tel    TEXT,
   status              TEXT DEFAULT 'LEAD',
   data_conversao      DATE,
+  quem_indicou        TEXT DEFAULT '',
+  indicado_para       TEXT DEFAULT '',
+  desconto_percentual REAL DEFAULT 0,
   criado_em           TEXT DEFAULT (datetime('now','localtime')),
   FOREIGN KEY(venda_id_indicador) REFERENCES vendas(id)
 )`);
+// Migrações para campos novos da tabela indicacoes
+try { db.exec("ALTER TABLE indicacoes ADD COLUMN quem_indicou TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE indicacoes ADD COLUMN indicado_para TEXT DEFAULT ''"); } catch(e) {}
+try { db.exec("ALTER TABLE indicacoes ADD COLUMN desconto_percentual REAL DEFAULT 0"); } catch(e) {}
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_indicacoes_venda ON indicacoes(venda_id_indicador)"); } catch(e) {}
 
 // Tabela de pontuação de atendentes (calculada automaticamente)
@@ -300,6 +307,23 @@ db.exec(`CREATE TABLE IF NOT EXISTS pontuacao_atendentes (
   FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
   FOREIGN KEY(venda_id) REFERENCES vendas(id)
 )`);
+
+// Tabela de ranking fixo (Daniel, Gabriel, Pedro, Kim)
+db.exec(`CREATE TABLE IF NOT EXISTS ranking (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome       TEXT NOT NULL UNIQUE,
+  vendas     INTEGER DEFAULT 0,
+  pontos     REAL DEFAULT 0,
+  updated_at TEXT DEFAULT (datetime('now','localtime'))
+)`);
+
+// Inserir os 4 atendentes do ranking se não existirem
+(function seedRanking() {
+  const nomes = ['Daniel', 'Gabriel', 'Pedro', 'Kim'];
+  const stmt = db.prepare("SELECT id FROM ranking WHERE nome=?");
+  const ins  = db.prepare("INSERT INTO ranking (nome, vendas, pontos) VALUES (?,0,0)");
+  nomes.forEach(n => { if (!stmt.get(n)) ins.run(n); });
+})();
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_pontuacao_usuario ON pontuacao_atendentes(usuario_id)"); } catch(e) {}
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_pontuacao_data ON pontuacao_atendentes(data)"); } catch(e) {}
 
@@ -314,6 +338,33 @@ db.exec(`CREATE TABLE IF NOT EXISTS metas_globais (
   criado_em         TEXT DEFAULT (datetime('now','localtime'))
 )`);
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_metas_periodo ON metas_globais(periodo, mes_ano)"); } catch(e) {}
+
+// Tabela de serviços no banco (lista padrão)
+db.exec(`CREATE TABLE IF NOT EXISTS servicos (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome       TEXT NOT NULL,
+  preco      REAL DEFAULT 0,
+  descricao  TEXT DEFAULT '',
+  cor        TEXT DEFAULT '#2563eb',
+  ativo      INTEGER DEFAULT 1,
+  criado_em  TEXT DEFAULT (datetime('now','localtime'))
+)`);
+
+// Seed dos serviços padrão LS Impulsiona
+(function seedServicos() {
+  const count = db.prepare("SELECT COUNT(*) as c FROM servicos").get().c;
+  if (count === 0) {
+    const ins = db.prepare("INSERT INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)");
+    ins.run('Pacote 4 Vídeos Persuasivos', 997,  'Pacote com 4 vídeos persuasivos para marketing', '#2563eb');
+    ins.run('Pacote 5 Vídeos Persuasivos', 1297, 'Pacote com 5 vídeos persuasivos para marketing', '#3b82f6');
+    ins.run('Pacote 6 Vídeos Persuasivos', 1597, 'Pacote com 6 vídeos persuasivos para marketing', '#6366f1');
+    ins.run('Pacote 7 Vídeos Persuasivos', 1997, 'Pacote com 7 vídeos persuasivos para marketing', '#8b5cf6');
+    ins.run('Tráfego Pago',                800,  'Gestão de tráfego pago e anúncios',              '#f97316');
+    ins.run('Social Media',                600,  'Gestão de redes sociais',                        '#f59e0b');
+    ins.run('Automação',                   1500, 'Automação de marketing e processos',              '#10b981');
+    ins.run('CRM',                         300,  'Sistema CRM e gestão de clientes',               '#0d9488');
+  }
+})();
 
 // ── Migrações de schema ───────────────────────────────────────────────────────
 try { db.exec("ALTER TABLE leads ADD COLUMN unidade TEXT DEFAULT 'Conquista'"); } catch(e) { /* já existe */ }
@@ -356,12 +407,12 @@ for (const u of DEFAULTS) {
 
 // ── Permissões ────────────────────────────────────────────────────────────────
 const PERMISSOES = {
-  admin:    ['dashboard','leads','agenda','faturamento','setores','servicos','chat','whatsapp','atendimentos','novo','config','usuarios'],
-  gestor:   ['dashboard','leads','agenda','faturamento','setores','servicos','chat','whatsapp','atendimentos','novo','config','usuarios'],
-  gerente:  ['dashboard','leads','agenda','setores','servicos','chat','whatsapp','atendimentos','novo','config'],
-  atendente:['dashboard','leads','chat','atendimentos'],
-  vendedor: ['dashboard','chat','atendimentos'],
-  optometrista:['dashboard','agenda','chat','atendimentos'],
+  admin:    ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gestor:   ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gerente:  ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  optometrista:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
 };
 
 // ── Middlewares ───────────────────────────────────────────────────────────────
@@ -1451,6 +1502,15 @@ app.get('/api/stats', auth, (req, res) => {
 // STATIC — serve o CRM
 // ════════════════════════════════════════════════════════════════════════════════
 
+// HTML nunca cacheado — JS/CSS cacheados por 1h
+app.use((req, res, next) => {
+  if (req.path === '/' || req.path.endsWith('.html') || req.path.endsWith('sw.js')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1h',
   etag: true,
@@ -1727,6 +1787,37 @@ app.get('/api/videos', auth, (req, res) => {
   }
 });
 
+// POST /api/videos - Upload metadata de vídeo (cru ou pronto)
+app.post('/api/videos', auth, (req, res) => {
+  try {
+    const { cliente_nome, tipo, url, status } = req.body;
+    if (!cliente_nome) return res.status(400).json({ error: 'cliente_nome obrigatório' });
+    const r = db.prepare(`INSERT INTO videos (cliente_nome, tipo, url, status, data_entrega) VALUES (?,?,?,?,date('now','localtime'))`)
+      .run(cliente_nome, tipo||'Cru', url||'', status||'Cru');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/videos/:id - Atualizar status de vídeo
+app.put('/api/videos/:id', auth, (req, res) => {
+  try {
+    const { status, url, tipo } = req.body;
+    db.prepare('UPDATE videos SET status=COALESCE(?,status), url=COALESCE(?,url), tipo=COALESCE(?,tipo) WHERE id=?')
+      .run(status||null, url||null, tipo||null, req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/videos/:id
+app.delete('/api/videos/:id', auth, requireRole('admin','gestor'), (req, res) => {
+  try {
+    db.prepare('DELETE FROM videos WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST /api/videos/enviar - Registrar envio de vídeo
 app.post('/api/videos/enviar', auth, (req, res) => {
   try {
@@ -1765,15 +1856,18 @@ app.get('/api/indicacoes', auth, (req, res) => {
 // POST /api/indicacoes - Registrar indicação
 app.post('/api/indicacoes', auth, (req, res) => {
   try {
-    const { venda_id_indicador, novo_cliente_nome, novo_cliente_tel } = req.body;
-    if (!venda_id_indicador || !novo_cliente_nome || !novo_cliente_tel) {
-      return res.status(400).json({ error: 'Campos obrigatórios' });
+    const { venda_id_indicador, novo_cliente_nome, novo_cliente_tel, quem_indicou, indicado_para, status, desconto_percentual } = req.body;
+    // Aceita tanto o formato antigo (venda_id_indicador + novo_cliente_nome) quanto o novo (quem_indicou + indicado_para)
+    const quemInd = quem_indicou || '';
+    const indPara = indicado_para || novo_cliente_nome || '';
+    if (!indPara && !quemInd) {
+      return res.status(400).json({ error: 'Campos obrigatórios: quem_indicou e indicado_para' });
     }
 
     const r = db.prepare(`
-      INSERT INTO indicacoes (venda_id_indicador, novo_cliente_nome, novo_cliente_tel, status)
-      VALUES (?, ?, ?, 'LEAD')
-    `).run(venda_id_indicador, novo_cliente_nome, novo_cliente_tel);
+      INSERT INTO indicacoes (venda_id_indicador, novo_cliente_nome, novo_cliente_tel, status, quem_indicou, indicado_para, desconto_percentual)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(venda_id_indicador||null, novo_cliente_nome||indPara, novo_cliente_tel||'', status||'em_negociacao', quemInd, indPara, desconto_percentual||0);
 
     res.json({ ok: true, id: r.lastInsertRowid });
   } catch(e) {
@@ -1824,6 +1918,85 @@ app.put('/api/metas-globais/:id', auth, requireRole('admin', 'gestor'), (req, re
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// RANKING ENDPOINTS
+// ════════════════════════════════════════════════════════════════════════════════
+
+// GET /api/ranking - Lista ranking dos atendentes
+app.get('/api/ranking', auth, (req, res) => {
+  try {
+    const rows = db.prepare('SELECT * FROM ranking ORDER BY pontos DESC').all();
+    res.json(rows.map((r, i) => ({ ...r, posicao: i + 1 })));
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PUT /api/ranking/:id - Admin pode editar pontos/vendas manualmente
+app.put('/api/ranking/:id', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    const { vendas, pontos } = req.body;
+    db.prepare("UPDATE ranking SET vendas=COALESCE(?,vendas), pontos=COALESCE(?,pontos), updated_at=datetime('now','localtime') WHERE id=?")
+      .run(vendas ?? null, pontos ?? null, req.params.id);
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// SERVICOS ENDPOINTS
+// ════════════════════════════════════════════════════════════════════════════════
+
+app.get('/api/servicos', auth, (req, res) => {
+  try {
+    res.json(db.prepare('SELECT * FROM servicos WHERE ativo=1 ORDER BY id').all());
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/servicos', auth, requireRole('admin','gestor'), (req, res) => {
+  try {
+    const { nome, preco, descricao, cor } = req.body;
+    if (!nome) return res.status(400).json({ error: 'Nome obrigatório' });
+    const r = db.prepare('INSERT INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)').run(nome, preco||0, descricao||'', cor||'#2563eb');
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/servicos/:id', auth, requireRole('admin','gestor'), (req, res) => {
+  try {
+    const { nome, preco, descricao, cor } = req.body;
+    db.prepare('UPDATE servicos SET nome=COALESCE(?,nome), preco=COALESCE(?,preco), descricao=COALESCE(?,descricao), cor=COALESCE(?,cor) WHERE id=?')
+      .run(nome||null, preco??null, descricao||null, cor||null, req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/servicos/:id', auth, requireRole('admin','gestor'), (req, res) => {
+  try {
+    db.prepare('UPDATE servicos SET ativo=0 WHERE id=?').run(req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
+// INDICACOES ENDPOINTS (nova versão completa)
+// ════════════════════════════════════════════════════════════════════════════════
+
+// PUT /api/indicacoes/:id - Atualizar status/desconto de uma indicação
+app.put('/api/indicacoes/:id', auth, (req, res) => {
+  try {
+    const { status, desconto_percentual, quem_indicou, indicado_para } = req.body;
+    db.prepare(`UPDATE indicacoes SET
+      status=COALESCE(?,status),
+      desconto_percentual=COALESCE(?,desconto_percentual),
+      quem_indicou=COALESCE(?,quem_indicou),
+      indicado_para=COALESCE(?,indicado_para)
+      WHERE id=?`).run(status||null, desconto_percentual??null, quem_indicou||null, indicado_para||null, req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // GET /api/calendario - Eventos do calendário (pagamentos + vídeos)

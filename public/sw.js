@@ -1,32 +1,43 @@
 // Service Worker — LS Impulsiona CRM
-const CACHE = 'ls-crm-v4';
-const OFFLINE_ASSETS = ['/'];
+// NUNCA cacheia HTML — sempre busca do servidor
+const CACHE = 'ls-crm-v5';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(OFFLINE_ASSETS)).then(() => self.skipWaiting())
-  );
+  // Ativa imediatamente, sem esperar tabs fecharem
+  e.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', e => {
+  // Apaga TODOS os caches antigos
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+      .then(() => {
+        // Força reload em todos os clientes para pegar nova versão
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(client => client.navigate(client.url));
+        });
+      })
   );
 });
 
 self.addEventListener('fetch', e => {
-  // Não interceptar chamadas de API
-  if (e.request.url.includes('/api/')) return;
+  const url = new URL(e.request.url);
+
+  // NUNCA interceptar: API, HTML principal
+  if (url.pathname.includes('/api/')) return;
+  if (url.pathname === '/' || url.pathname.endsWith('.html')) return;
+
+  // Para outros assets (JS, CSS), tenta rede primeiro
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request).then(r => r || caches.match('/')))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
 
 // ── Push Notifications ────────────────────────────────────────────────────────
 self.addEventListener('push', e => {
-  let data = { title: 'Grupo RM Clínica', body: 'Nova notificação', url: '/' };
+  let data = { title: 'LS Impulsiona', body: 'Nova notificação', url: '/' };
   try { data = e.data.json(); } catch(err) {}
   e.waitUntil(
     self.registration.showNotification(data.title, {
