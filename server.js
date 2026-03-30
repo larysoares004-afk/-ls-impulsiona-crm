@@ -1550,10 +1550,7 @@ app.get(['/instalar', '/instalar.html', '/baixar', '/app', '/download'], async (
   }
 });
 
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// catch-all movido para o final — NÃO remover daqui
 
 // ════════════════════════════════════════════════════════════════════════════════
 // PUSH NOTIFICATIONS
@@ -2222,6 +2219,12 @@ setInterval(() => {
   } catch(e) {}
 
 }, 60 * 60 * 1000); // 1 hora
+
+// ── Catch-all: serve index.html para rotas do frontend ───────────────────────
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ── Iniciar servidor ──────────────────────────────────────────────────────────
 
