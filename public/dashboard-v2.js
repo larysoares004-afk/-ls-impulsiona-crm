@@ -732,24 +732,61 @@ async function renderRanking() {
   }, 50);
 }
 
-async function editarPontosRanking(id, nome, pontosAtual, vendasAtual) {
-  const novosPontos = prompt(`Editar pontos de ${nome}\nPontos atuais: ${pontosAtual}\n\nDigite os novos pontos:`, pontosAtual);
-  if (novosPontos === null) return;
-  const pts = parseFloat(novosPontos);
-  if (isNaN(pts)) { toast('Valor invalido', 'error'); return; }
+function editarPontosRanking(id, nome, pontosAtual, vendasAtual) {
+  document.getElementById('_modalRanking')?.remove();
+  const m = document.createElement('div');
+  m.id = '_modalRanking';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:380px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:6px">Editar Atendente</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:20px">Atualize nome, pontos e vendas</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">NOME</label>
+          <input id="_rankNome" type="text" value="${nome}" style="width:100%;padding:10px 14px;border:1.5px solid #6366f1;border-radius:8px;font-size:15px;font-weight:700;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">PONTOS</label>
+          <input id="_rankPontos" type="number" min="0" step="0.5" value="${pontosAtual}" style="width:100%;padding:10px 14px;border:1.5px solid #2563eb;border-radius:8px;font-size:22px;font-weight:800;text-align:center;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">VENDAS</label>
+          <input id="_rankVendas" type="number" min="0" value="${vendasAtual}" style="width:100%;padding:10px 14px;border:1.5px solid #10b981;border-radius:8px;font-size:22px;font-weight:800;text-align:center;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:22px">
+        <button onclick="document.getElementById('_modalRanking').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button id="_btnSalvarRanking" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
 
-  const novasVendas = prompt(`Editar vendas de ${nome}\nVendas atuais: ${vendasAtual}\n\nDigite as novas vendas (ou deixe igual):`, vendasAtual);
-  const vds = novasVendas !== null ? parseInt(novasVendas, 10) : vendasAtual;
+  document.getElementById('_btnSalvarRanking').addEventListener('click', async () => {
+    const pts = parseFloat(document.getElementById('_rankPontos').value);
+    const vds = parseInt(document.getElementById('_rankVendas').value, 10);
+    if (isNaN(pts)) { if (typeof toast === 'function') toast('Pontos inválidos', 'error'); return; }
+    try {
+      const novoNome = document.getElementById('_rankNome')?.value.trim() || nome;
+      const res = await _api(`/api/ranking/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ nome: novoNome, pontos: pts, vendas: isNaN(vds) ? vendasAtual : vds })
+      });
+      const d = await res.json();
+      if (d.ok) {
+        m.remove();
+        if (typeof toast === 'function') toast(`${nome} atualizado!`, 'success');
+        renderRanking();
+      } else {
+        if (typeof toast === 'function') toast(d.error || 'Erro ao salvar', 'error');
+      }
+    } catch(e) {
+      if (typeof toast === 'function') toast(e.message, 'error');
+    }
+  });
 
-  try {
-    const res = await _api(`/api/ranking/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ pontos: pts, vendas: isNaN(vds) ? vendasAtual : vds })
-    });
-    const d = await res.json();
-    if (d.ok) { toast(`Ranking de ${nome} atualizado!`, 'success'); renderRanking(); }
-    else toast(d.error || 'Erro', 'error');
-  } catch(e) { toast(e.message, 'error'); }
+  setTimeout(() => document.getElementById('_rankPontos')?.select(), 100);
 }
 
 // Funcoes auxiliares (mantidas para compatibilidade)

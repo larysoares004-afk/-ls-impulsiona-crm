@@ -2003,9 +2003,9 @@ app.get('/api/ranking', auth, (req, res) => {
 // PUT /api/ranking/:id - Admin pode editar pontos/vendas manualmente
 app.put('/api/ranking/:id', auth, requireRole('admin', 'gestor'), (req, res) => {
   try {
-    const { vendas, pontos } = req.body;
-    db.prepare("UPDATE ranking SET vendas=COALESCE(?,vendas), pontos=COALESCE(?,pontos), updated_at=datetime('now','localtime') WHERE id=?")
-      .run(vendas ?? null, pontos ?? null, req.params.id);
+    const { vendas, pontos, nome } = req.body;
+    db.prepare("UPDATE ranking SET nome=COALESCE(?,nome), vendas=COALESCE(?,vendas), pontos=COALESCE(?,pontos), updated_at=datetime('now','localtime') WHERE id=?")
+      .run(nome ?? null, vendas ?? null, pontos ?? null, req.params.id);
     res.json({ ok: true });
   } catch(e) {
     res.status(500).json({ error: e.message });
