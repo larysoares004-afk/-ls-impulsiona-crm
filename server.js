@@ -382,14 +382,11 @@ db.exec(`CREATE TABLE IF NOT EXISTS servicos (
   }
 })();
 
-// ── Forçar serviços corretos LS Impulsiona ────────────────────────────────────
+// ── Forçar serviços corretos LS Impulsiona (sem duplicatas) ──────────────────
 try {
-  const nomesLS = ['Pacote 4 Vídeos Persuasivos','Pacote 5 Vídeos Persuasivos','Pacote 6 Vídeos Persuasivos','Pacote 7 Vídeos Persuasivos','Tráfego Pago','Social Media','Automação','CRM'];
-  // Remove serviços que não são da LS Impulsiona
-  db.prepare(`DELETE FROM servicos WHERE nome NOT IN (${nomesLS.map(()=>'?').join(',')})`)
-    .run(...nomesLS);
-  // Insere os que ainda não existem
-  const ins2 = db.prepare("INSERT OR IGNORE INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)");
+  // Apaga tudo e reinsere limpo
+  db.exec('DELETE FROM servicos');
+  const ins2 = db.prepare("INSERT INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)");
   ins2.run('Pacote 4 Vídeos Persuasivos', 997,  'Pacote com 4 vídeos persuasivos', '#2563eb');
   ins2.run('Pacote 5 Vídeos Persuasivos', 1297, 'Pacote com 5 vídeos persuasivos', '#3b82f6');
   ins2.run('Pacote 6 Vídeos Persuasivos', 1597, 'Pacote com 6 vídeos persuasivos', '#6366f1');
