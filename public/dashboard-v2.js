@@ -29,19 +29,25 @@ function getPontosServico(servico) {
 }
 
 function toggleEditarPontos(btn) {
-  const inputs = document.querySelectorAll('.pts-input');
-  const labels = document.querySelectorAll('.pts-label');
+  const ptsInputs = document.querySelectorAll('.pts-input');
+  const nomeInputs = document.querySelectorAll('.nome-input');
+  const ptsLabels = document.querySelectorAll('.pts-label');
+  const nomeLabels = document.querySelectorAll('.nome-label');
   const btnSalvar = document.getElementById('btnSalvarPontos');
   const editando = btn.dataset.editando === '1';
   if (!editando) {
-    inputs.forEach(i => i.style.display = 'block');
-    labels.forEach(l => l.style.display = 'none');
+    ptsInputs.forEach(i => i.style.display = 'inline-block');
+    nomeInputs.forEach(i => i.style.display = 'inline-block');
+    ptsLabels.forEach(l => l.style.display = 'none');
+    nomeLabels.forEach(l => l.style.display = 'none');
     if (btnSalvar) btnSalvar.style.display = 'block';
     btn.textContent = '✕ Cancelar';
     btn.dataset.editando = '1';
   } else {
-    inputs.forEach(i => i.style.display = 'none');
-    labels.forEach(l => l.style.display = 'block');
+    ptsInputs.forEach(i => i.style.display = 'none');
+    nomeInputs.forEach(i => i.style.display = 'none');
+    ptsLabels.forEach(l => l.style.display = 'inline');
+    nomeLabels.forEach(l => l.style.display = 'inline');
     if (btnSalvar) btnSalvar.style.display = 'none';
     btn.textContent = '✏️ Editar';
     btn.dataset.editando = '0';
@@ -49,11 +55,19 @@ function toggleEditarPontos(btn) {
 }
 
 function salvarTodosPontos() {
+  const newPontos = {};
   document.querySelectorAll('.pts-input').forEach(input => {
-    const nome = input.dataset.servico;
+    const nomeOriginal = input.dataset.servico;
+    const nomeInput = document.querySelector(`.nome-input[data-servico="${nomeOriginal.replace(/"/g, '\\"')}"]`);
+    const novoNome = (nomeInput ? nomeInput.value.trim() : '') || nomeOriginal;
     const pts = parseInt(input.value) || 1;
-    if (nome) PONTOS_SERVICO[nome] = pts;
+    newPontos[novoNome] = pts;
+    // atualiza data-servico para permitir edições subsequentes
+    input.dataset.servico = novoNome;
+    if (nomeInput) nomeInput.dataset.servico = novoNome;
   });
+  Object.keys(PONTOS_SERVICO).forEach(k => delete PONTOS_SERVICO[k]);
+  Object.assign(PONTOS_SERVICO, newPontos);
   try { localStorage.setItem('ls_pontos_servico', JSON.stringify(PONTOS_SERVICO)); } catch(e) {}
   if (typeof toast === 'function') toast('Pontos salvos!', 'success');
   renderRanking();
@@ -676,9 +690,10 @@ async function renderRanking() {
         </div>
         <div id="tabelaPontosServico">
           ${Object.entries(PONTOS_SERVICO).map(([s,p]) => `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;color:var(--z600);border-bottom:1px solid #f3f4f6">
-              <span>${s}</span>
-              <div style="display:flex;align-items:center;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;color:var(--z600);border-bottom:1px solid #f3f4f6;gap:6px">
+              <span class="nome-label" style="flex:1">${s}</span>
+              <input type="text" value="${s.replace(/"/g,'&quot;')}" data-servico="${s.replace(/"/g,'&quot;')}" class="nome-input" style="display:none;flex:1;min-width:0;padding:3px 6px;border:1.5px solid #6366f1;border-radius:6px;font-size:11px">
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
                 <input type="number" min="0" max="99" value="${p}" data-servico="${s.replace(/"/g,'&quot;')}" class="pts-input" style="display:none;width:50px;padding:3px 6px;border:1.5px solid #2563eb;border-radius:6px;font-size:11px;font-weight:700;text-align:center">
                 <span class="pts-label" style="font-weight:700;color:#2563eb">${p} pts</span>
               </div>

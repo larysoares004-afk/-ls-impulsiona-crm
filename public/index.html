@@ -5387,20 +5387,36 @@ function _renderMetaMes() {
   }
 }
 
-// ── Função para editar metas via prompt ──────────────────────────────────────
+// ── Função para editar metas via modal ───────────────────────────────────────
 function editarMeta(tipo, label) {
-  try {
-    const lsMetas = JSON.parse(localStorage.getItem('ls_metas') || '{}');
-    const atual = lsMetas[tipo] || 0;
-    const novoVal = prompt(`${label} — valor atual: ${atual}\nDigite a nova meta (número):`, atual);
-    if (novoVal === null) return;
-    const num = parseInt(novoVal, 10);
-    if (isNaN(num) || num < 0) { toast('Valor inválido', 'error'); return; }
-    lsMetas[tipo] = num;
-    localStorage.setItem('ls_metas', JSON.stringify(lsMetas));
-    renderDashboard();
-    toast(`${label} atualizada para ${num}!`, 'success');
-  } catch(e) { toast('Erro ao salvar meta', 'error'); }
+  document.getElementById('_modalMeta')?.remove();
+  const lsMetas = JSON.parse(localStorage.getItem('ls_metas') || '{}');
+  const atual = lsMetas[tipo] || 0;
+  const m = document.createElement('div');
+  m.id = '_modalMeta';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:360px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:16px">Editar ${label}</div>
+      <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">NOVA META (número de vendas)</label>
+      <input id="_metaInput" type="number" min="0" value="${atual}" style="width:100%;padding:12px;border:1.5px solid #2563eb;border-radius:8px;font-size:20px;font-weight:700;text-align:center;box-sizing:border-box">
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('_modalMeta').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button onclick="(function(){
+          const v=parseInt(document.getElementById('_metaInput').value,10);
+          if(isNaN(v)||v<0){toast('Valor inválido','error');return;}
+          const m=JSON.parse(localStorage.getItem('ls_metas')||'{}');
+          m['${tipo}']=v;
+          localStorage.setItem('ls_metas',JSON.stringify(m));
+          document.getElementById('_modalMeta').remove();
+          renderDashboard();
+          toast('${label} atualizada para '+v+'!','success');
+        })()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+  setTimeout(() => document.getElementById('_metaInput')?.select(), 100);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
