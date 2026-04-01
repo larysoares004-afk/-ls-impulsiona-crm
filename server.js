@@ -21,6 +21,7 @@ const jwt        = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const cors       = require('cors');
 const helmet     = require('helmet');
+let multer; try { multer = require('multer'); } catch(e) { multer = null; }
 const rateLimit  = require('express-rate-limit');
 const path       = require('path');
 const fs         = require('fs');
@@ -35,6 +36,21 @@ const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BP_rJ02L19z2zzg7SmsoQa0g
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || 'wV8WTNS7bXjDjnwEf9nDl0-unfXlFoAbW0KTk8opCQU';
 if (webpush) webpush.setVapidDetails('mailto:admin@gruporm.com', VAPID_PUBLIC, VAPID_PRIVATE);
 const DB_PATH    = process.env.DB_PATH || (process.platform === 'win32' ? path.join(__dirname, 'alliance.db') : '/data/alliance.db');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || (process.platform === 'win32' ? path.join(__dirname, 'uploads') : '/data/uploads');
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+// ── Multer (upload de arquivos) ───────────────────────────────────────────────
+let upload = null;
+if (multer) {
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + '-' + Math.random().toString(36).slice(2) + ext);
+    }
+  });
+  upload = multer({ storage, limits: { fileSize: 500 * 1024 * 1024 } });
+}
 
 // ── Garantir diretório do banco ───────────────────────────────────────────────
 const dbDir = path.dirname(DB_PATH);
@@ -365,6 +381,24 @@ db.exec(`CREATE TABLE IF NOT EXISTS servicos (
     ins.run('CRM',                         300,  'Sistema CRM e gestão de clientes',               '#0d9488');
   }
 })();
+
+// ── Forçar serviços corretos LS Impulsiona ────────────────────────────────────
+try {
+  const nomesLS = ['Pacote 4 Vídeos Persuasivos','Pacote 5 Vídeos Persuasivos','Pacote 6 Vídeos Persuasivos','Pacote 7 Vídeos Persuasivos','Tráfego Pago','Social Media','Automação','CRM'];
+  // Remove serviços que não são da LS Impulsiona
+  db.prepare(`DELETE FROM servicos WHERE nome NOT IN (${nomesLS.map(()=>'?').join(',')})`)
+    .run(...nomesLS);
+  // Insere os que ainda não existem
+  const ins2 = db.prepare("INSERT OR IGNORE INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)");
+  ins2.run('Pacote 4 Vídeos Persuasivos', 997,  'Pacote com 4 vídeos persuasivos', '#2563eb');
+  ins2.run('Pacote 5 Vídeos Persuasivos', 1297, 'Pacote com 5 vídeos persuasivos', '#3b82f6');
+  ins2.run('Pacote 6 Vídeos Persuasivos', 1597, 'Pacote com 6 vídeos persuasivos', '#6366f1');
+  ins2.run('Pacote 7 Vídeos Persuasivos', 1997, 'Pacote com 7 vídeos persuasivos', '#8b5cf6');
+  ins2.run('Tráfego Pago', 800,  'Gestão de tráfego pago', '#f97316');
+  ins2.run('Social Media', 600,  'Gestão de redes sociais', '#f59e0b');
+  ins2.run('Automação',    1500, 'Automação de marketing',  '#10b981');
+  ins2.run('CRM',          300,  'Sistema CRM',             '#0d9488');
+} catch(e) { console.error('Erro ao corrigir serviços:', e.message); }
 
 // ── Migrações de schema ───────────────────────────────────────────────────────
 try { db.exec("ALTER TABLE leads ADD COLUMN unidade TEXT DEFAULT 'Conquista'"); } catch(e) { /* já existe */ }
@@ -1837,6 +1871,31 @@ app.post('/api/videos/enviar', auth, (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// POST /api/videos/upload — Upload de arquivo de vídeo
+app.post('/api/videos/upload', auth, (req, res, next) => {
+  if (!upload) return res.status(501).json({ error: 'Upload não disponível (multer não instalado)' });
+  upload.single('arquivo')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, (req, res) => {
+  try {
+    const { cliente_nome, tipo, data_entrega } = req.body;
+    const arquivo = req.file;
+    if (!arquivo) return res.status(400).json({ error: 'Arquivo não enviado' });
+    const url = '/uploads/' + arquivo.filename;
+    const status = (tipo === 'Pronto' || tipo === 'pronto') ? 'PRONTO' : 'CRU';
+    const r = db.prepare('INSERT INTO videos (cliente_nome, tipo, url, data_entrega, status) VALUES (?,?,?,?,?)')
+      .run(cliente_nome || 'Sem nome', tipo || 'Cru', url, data_entrega || null, status);
+    res.json({ ok: true, id: r.lastInsertRowid, url });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Servir uploads
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // INDICAÇÕES ENDPOINTS
 

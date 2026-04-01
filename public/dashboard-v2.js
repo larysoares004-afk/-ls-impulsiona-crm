@@ -2,7 +2,7 @@
 // DASHBOARD v2 - JavaScript das novas funcionalidades LS Impulsiona
 // ════════════════════════════════════════════════════════════════════════════════
 
-// Pontos por servico (sistema de ranking)
+// Pontos por servico (sistema de ranking) — editavel pelo admin
 const PONTOS_SERVICO = {
   'Pacote 4 Vídeos Persuasivos': 4,
   'Pacote 5 Vídeos Persuasivos': 5,
@@ -14,12 +14,49 @@ const PONTOS_SERVICO = {
   'CRM':            1,
 };
 
+// Carregar pontos customizados salvos pelo admin
+try {
+  const _saved = JSON.parse(localStorage.getItem('ls_pontos_servico') || 'null');
+  if (_saved && typeof _saved === 'object') Object.assign(PONTOS_SERVICO, _saved);
+} catch(e) {}
+
 function getPontosServico(servico) {
   if (!servico) return 1;
   for (const [key, pts] of Object.entries(PONTOS_SERVICO)) {
     if (servico.toLowerCase().includes(key.toLowerCase())) return pts;
   }
   return 1;
+}
+
+function toggleEditarPontos(btn) {
+  const inputs = document.querySelectorAll('.pts-input');
+  const labels = document.querySelectorAll('.pts-label');
+  const btnSalvar = document.getElementById('btnSalvarPontos');
+  const editando = btn.dataset.editando === '1';
+  if (!editando) {
+    inputs.forEach(i => i.style.display = 'block');
+    labels.forEach(l => l.style.display = 'none');
+    if (btnSalvar) btnSalvar.style.display = 'block';
+    btn.textContent = '✕ Cancelar';
+    btn.dataset.editando = '1';
+  } else {
+    inputs.forEach(i => i.style.display = 'none');
+    labels.forEach(l => l.style.display = 'block');
+    if (btnSalvar) btnSalvar.style.display = 'none';
+    btn.textContent = '✏️ Editar';
+    btn.dataset.editando = '0';
+  }
+}
+
+function salvarTodosPontos() {
+  document.querySelectorAll('.pts-input').forEach(input => {
+    const nome = input.dataset.servico;
+    const pts = parseInt(input.value) || 1;
+    if (nome) PONTOS_SERVICO[nome] = pts;
+  });
+  try { localStorage.setItem('ls_pontos_servico', JSON.stringify(PONTOS_SERVICO)); } catch(e) {}
+  if (typeof toast === 'function') toast('Pontos salvos!', 'success');
+  renderRanking();
 }
 
 // Renderizar Dashboard v2 com gráficos e KPIs
@@ -324,65 +361,84 @@ async function renderVideos() {
     </div>
   </div>
 
-  <!-- Modal novo video -->
-  <div id="modalNovoVideo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div style="font-size:16px;font-weight:800">Novo Video</div>
-        <button onclick="fecharModalVideo()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--z400)">x</button>
-      </div>
-      <div style="display:grid;gap:14px">
-        <div>
-          <label class="lbl">Nome do Cliente</label>
-          <input type="text" id="videoCliente" class="inp" placeholder="Nome do cliente">
-        </div>
-        <div>
-          <label class="lbl">Tipo</label>
-          <select id="videoTipo" class="inp">
-            <option value="Cru">Cru (bruto)</option>
-            <option value="Pronto">Pronto (editado)</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">Link do Video (opcional)</label>
-          <input type="url" id="videoUrl" class="inp" placeholder="https://drive.google.com/...">
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:20px">
-        <button class="btn btn-primary" style="flex:1" onclick="salvarNovoVideo()">Salvar</button>
-        <button class="btn btn-ghost" onclick="fecharModalVideo()">Cancelar</button>
-      </div>
-    </div>
-  </div>
   `;
 
   document.getElementById('view-videos').innerHTML = html;
 }
 
 function abrirModalVideo() {
-  const m = document.getElementById('modalNovoVideo');
-  if (m) { m.style.display = 'flex'; }
-}
-
-function fecharModalVideo() {
-  const m = document.getElementById('modalNovoVideo');
-  if (m) { m.style.display = 'none'; }
+  document.getElementById('modalNovoVideo')?.remove();
+  const m = document.createElement('div');
+  m.id = 'modalNovoVideo';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#1e293b">Adicionar Vídeo</div>
+        <button onclick="document.getElementById('modalNovoVideo').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b">✕</button>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">CLIENTE *</label>
+          <input type="text" id="videoCliente" placeholder="Nome do cliente" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">TIPO</label>
+          <select id="videoTipo" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff">
+            <option value="Cru">Cru (bruto — material do cliente)</option>
+            <option value="Pronto">Pronto (editado — para entrega)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">ARQUIVO DE VÍDEO *</label>
+          <input type="file" id="videoArquivo" accept="video/*,.mp4,.mov,.avi,.mkv,.zip,.rar" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;background:#f8fafc">
+          <p style="font-size:11px;color:#94a3b8;margin:4px 0 0">MP4, MOV, AVI, MKV, ZIP — máx 500MB</p>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">DATA DE ENTREGA</label>
+          <input type="date" id="videoData" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('modalNovoVideo').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button id="btnSalvarVideo" onclick="salvarNovoVideo()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Enviar Vídeo</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target === m) m.remove(); });
 }
 
 async function salvarNovoVideo() {
   const cliente = (document.getElementById('videoCliente')?.value || '').trim();
   const tipo    = document.getElementById('videoTipo')?.value || 'Cru';
-  const url     = (document.getElementById('videoUrl')?.value || '').trim();
-  if (!cliente) { toast('Nome do cliente obrigatorio', 'error'); return; }
+  const arquivo = document.getElementById('videoArquivo')?.files?.[0];
+  const data    = document.getElementById('videoData')?.value || '';
+  if (!cliente) { toast('Nome do cliente obrigatório', 'error'); return; }
+  if (!arquivo) { toast('Selecione um arquivo de vídeo', 'error'); return; }
+  const btn = document.getElementById('btnSalvarVideo');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
   try {
-    const res = await _api('/api/videos', {
-      method: 'POST',
-      body: JSON.stringify({ cliente_nome: cliente, tipo, url, status: tipo })
-    });
+    const form = new FormData();
+    form.append('arquivo', arquivo);
+    form.append('cliente_nome', cliente);
+    form.append('tipo', tipo);
+    form.append('data_entrega', data);
+    const token = localStorage.getItem('alliance_token') || '';
+    const res = await fetch('/api/videos/upload', { method:'POST', headers:{'Authorization':'Bearer '+token}, body: form });
     const d = await res.json();
-    if (d.ok) { toast('Video cadastrado!', 'success'); fecharModalVideo(); renderVideos(); }
-    else toast(d.error || 'Erro', 'error');
-  } catch(e) { toast(e.message, 'error'); }
+    if (d.ok || d.id) {
+      toast('Vídeo enviado com sucesso!', 'success');
+      document.getElementById('modalNovoVideo')?.remove();
+      renderVideos();
+    } else {
+      toast(d.error || 'Erro ao enviar', 'error');
+      if (btn) { btn.textContent = 'Enviar Vídeo'; btn.disabled = false; }
+    }
+  } catch(e) {
+    toast('Erro ao enviar arquivo', 'error');
+    if (btn) { btn.textContent = 'Enviar Vídeo'; btn.disabled = false; }
+  }
 }
 
 async function marcarVideoPronto(id) {
@@ -472,54 +528,56 @@ async function renderIndicacoes() {
     </div>
   </div>
 
-  <!-- Modal nova indicacao -->
-  <div id="modalNovaIndicacao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div style="font-size:16px;font-weight:800">Nova Indicacao</div>
-        <button onclick="fecharModalIndicacao()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--z400)">x</button>
-      </div>
-      <div style="display:grid;gap:14px">
-        <div>
-          <label class="lbl">Quem Indicou</label>
-          <input type="text" id="indQuemIndicou" class="inp" placeholder="Nome do cliente que indicou">
-        </div>
-        <div>
-          <label class="lbl">Indicou Para</label>
-          <input type="text" id="indIndicadoPara" class="inp" placeholder="Nome do novo cliente indicado">
-        </div>
-        <div>
-          <label class="lbl">Status</label>
-          <select id="indStatus" class="inp">
-            <option value="em_negociacao">Em negociacao</option>
-            <option value="fechou">Fechou</option>
-            <option value="nao_fechou">Nao fechou</option>
-          </select>
-        </div>
-        <div>
-          <label class="lbl">Desconto (%) para quem indicou</label>
-          <input type="number" id="indDesconto" class="inp" placeholder="0" min="0" max="100" value="0">
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:20px">
-        <button class="btn btn-primary" style="flex:1" onclick="salvarNovaIndicacao()">Salvar</button>
-        <button class="btn btn-ghost" onclick="fecharModalIndicacao()">Cancelar</button>
-      </div>
-    </div>
-  </div>
   `;
 
   document.getElementById('view-indicacoes').innerHTML = html;
 }
 
 function abrirModalIndicacao() {
-  const m = document.getElementById('modalNovaIndicacao');
-  if (m) { m.style.display = 'flex'; }
-}
-
-function fecharModalIndicacao() {
-  const m = document.getElementById('modalNovaIndicacao');
-  if (m) { m.style.display = 'none'; }
+  document.getElementById('modalNovaIndicacao')?.remove();
+  const m = document.createElement('div');
+  m.id = 'modalNovaIndicacao';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#1e293b">Nova Indicação</div>
+        <button onclick="document.getElementById('modalNovaIndicacao').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b">✕</button>
+      </div>
+      <div style="display:grid;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">QUEM INDICOU *</label>
+          <input type="text" id="indQuemIndicou" placeholder="Nome do cliente que indicou" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">INDICOU PARA (futuro cliente) *</label>
+          <input type="text" id="indIndicadoPara" placeholder="Nome do novo cliente indicado" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">WHATSAPP DO NOVO CLIENTE</label>
+          <input type="text" id="indTelefone" placeholder="(00) 00000-0000" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">DESCONTO CONCEDIDO (%)</label>
+          <input type="number" id="indDesconto" placeholder="0" min="0" max="100" value="0" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">STATUS</label>
+          <select id="indStatus" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;background:#fff">
+            <option value="em_negociacao">Em negociação</option>
+            <option value="fechou">Fechou</option>
+            <option value="nao_fechou">Não fechou</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('modalNovaIndicacao').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button onclick="salvarNovaIndicacao()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Salvar Indicação</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target === m) m.remove(); });
 }
 
 async function salvarNovaIndicacao() {
@@ -612,13 +670,22 @@ async function renderRanking() {
         <canvas id="chartRanking"></canvas>
       </div>
       <div class="card-body" style="border-top:1px solid var(--z100)">
-        <div style="font-size:11px;font-weight:700;color:var(--z600);margin-bottom:8px">Sistema de Pontos por Servico</div>
-        ${Object.entries(PONTOS_SERVICO).map(([s,p]) => `
-          <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;color:var(--z600)">
-            <span>${s}</span>
-            <span style="font-weight:700;color:#2563eb">${p} pts</span>
-          </div>
-        `).join('')}
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--z600)">Sistema de Pontos por Serviço</div>
+          ${isAdmin ? '<span style="font-size:10px;color:#2563eb;cursor:pointer" onclick="toggleEditarPontos(this)">✏️ Editar</span>' : ''}
+        </div>
+        <div id="tabelaPontosServico">
+          ${Object.entries(PONTOS_SERVICO).map(([s,p]) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;color:var(--z600);border-bottom:1px solid #f3f4f6">
+              <span>${s}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" min="0" max="99" value="${p}" data-servico="${s.replace(/"/g,'&quot;')}" class="pts-input" style="display:none;width:50px;padding:3px 6px;border:1.5px solid #2563eb;border-radius:6px;font-size:11px;font-weight:700;text-align:center">
+                <span class="pts-label" style="font-weight:700;color:#2563eb">${p} pts</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${isAdmin ? '<button id="btnSalvarPontos" onclick="salvarTodosPontos()" style="display:none;margin-top:10px;width:100%;padding:8px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">Salvar Pontos</button>' : ''}
       </div>
     </div>
   </div>
