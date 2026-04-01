@@ -1818,10 +1818,16 @@ app.put('/api/pagamentos/:id', auth, (req, res) => {
 
 // VÍDEOS ENDPOINTS
 
-// GET /api/videos - Lista vídeos
+// GET /api/videos - Lista vídeos (com filtro opcional por data)
 app.get('/api/videos', auth, (req, res) => {
   try {
-    const videos = db.prepare('SELECT * FROM videos ORDER BY data_entrega DESC').all();
+    const { data } = req.query;
+    let videos;
+    if (data) {
+      videos = db.prepare("SELECT * FROM videos WHERE data_entrega=? ORDER BY criado_em DESC").all(data);
+    } else {
+      videos = db.prepare('SELECT * FROM videos ORDER BY data_entrega DESC').all();
+    }
     res.json(videos);
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -2325,20 +2331,29 @@ let _wppSock = null;
 let _wppQR   = null;  // base64 da imagem QR
 let _wppStatus = 'disconnected'; // 'disconnected' | 'qr' | 'connecting' | 'connected'
 
+const _silentLogger = {
+  level: 'silent',
+  child: () => _silentLogger,
+  info: ()=>{}, error: ()=>{}, warn: ()=>{},
+  debug: ()=>{}, trace: ()=>{}, fatal: ()=>{},
+};
+
 async function iniciarBaileys() {
+  if (_wppStatus === 'connecting' || _wppStatus === 'connected') return;
+  _wppStatus = 'connecting';
   try {
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore } = await import('@whiskeysockets/baileys');
-    const { Boom } = await import('@hapi/boom');
     const QRCode = require('qrcode');
+    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = await import('@whiskeysockets/baileys');
 
     if (!fs.existsSync(WPP_SESSION_DIR)) fs.mkdirSync(WPP_SESSION_DIR, { recursive: true });
     const { state: authState, saveCreds } = await useMultiFileAuthState(WPP_SESSION_DIR);
 
-    _wppStatus = 'connecting';
     const sock = makeWASocket({
-      auth: { creds: authState.creds, keys: makeCacheableSignalKeyStore(authState.keys, { logger: { level: 'silent', child: () => ({ level: 'silent', info: ()=>{}, error: ()=>{}, warn: ()=>{}, debug: ()=>{}, trace: ()=>{}, fatal: ()=>{} }) } }) },
+      auth: authState,
       printQRInTerminal: false,
-      logger: { level: 'silent', child: () => ({ level: 'silent', info: ()=>{}, error: ()=>{}, warn: ()=>{}, debug: ()=>{}, trace: ()=>{}, fatal: ()=>{} }) },
+      logger: _silentLogger,
+      browser: ['LS Impulsiona CRM', 'Chrome', '1.0.0'],
+      connectTimeoutMs: 30000,
     });
     _wppSock = sock;
 
@@ -2347,56 +2362,57 @@ async function iniciarBaileys() {
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         _wppStatus = 'qr';
-        _wppQR = await QRCode.toDataURL(qr);
+        try { _wppQR = await QRCode.toDataURL(qr); } catch(e) {}
         console.log('📱 WhatsApp QR gerado — escaneie no app');
       }
       if (connection === 'open') {
         _wppStatus = 'connected';
         _wppQR = null;
-        const jid = sock.user?.id || '';
-        console.log('✅ WhatsApp conectado:', jid);
+        console.log('✅ WhatsApp conectado:', sock.user?.id || '');
       }
       if (connection === 'close') {
-        const code = lastDisconnect?.error?.output?.statusCode;
-        const loggedOut = code === DisconnectReason.loggedOut;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const loggedOut = statusCode === 401 || statusCode === DisconnectReason?.loggedOut;
         _wppStatus = 'disconnected';
         _wppQR = null;
         _wppSock = null;
         if (loggedOut) {
-          // Apagar sessão e não reconectar automaticamente
           try { fs.rmSync(WPP_SESSION_DIR, { recursive: true, force: true }); } catch(e) {}
-          console.log('🔒 WhatsApp desconectado (logout)');
+          console.log('🔒 WhatsApp logout — sessão apagada');
         } else {
-          console.log('⚠️  WhatsApp desconectado, reconectando em 5s...');
-          setTimeout(iniciarBaileys, 5000);
+          console.log('⚠️  WhatsApp desconectado, reconectando em 10s...');
+          setTimeout(iniciarBaileys, 10000);
         }
       }
     });
 
-    // Receber mensagens e disparar para N8N/CRM
     sock.ev.on('messages.upsert', ({ messages, type }) => {
       if (type !== 'notify') return;
       messages.forEach(async msg => {
         if (msg.key.fromMe) return;
         const from = msg.key.remoteJid || '';
+        if (from.endsWith('@g.us')) return;
         const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-        if (!text || from.endsWith('@g.us')) return; // ignorar grupos
-        const nome = msg.pushName || from.replace('@s.whatsapp.net','');
-        // Disparar para N8N se configurado
-        try { await dispararParaN8N('whatsapp', from.replace('@s.whatsapp.net',''), nome, text); } catch(e) {}
+        if (!text) return;
+        const nome = msg.pushName || from.replace('@s.whatsapp.net', '');
+        try { await dispararParaN8N('whatsapp', from.replace('@s.whatsapp.net', ''), nome, text); } catch(e) {}
       });
     });
 
   } catch(e) {
     console.error('Erro ao iniciar Baileys:', e.message);
-    _wppStatus = 'error';
+    _wppStatus = 'disconnected';
   }
 }
 
-// Tentar reconectar se já tinha sessão salva
-if (fs.existsSync(WPP_SESSION_DIR) && fs.readdirSync(WPP_SESSION_DIR).length > 0) {
-  setTimeout(iniciarBaileys, 2000);
-}
+// Reconectar apenas se sessão já existe — não bloqueia o startup
+setImmediate(() => {
+  try {
+    if (fs.existsSync(WPP_SESSION_DIR) && fs.readdirSync(WPP_SESSION_DIR).length > 0) {
+      setTimeout(iniciarBaileys, 3000);
+    }
+  } catch(e) {}
+});
 
 app.get('/api/wpp-qr/status', auth, (req, res) => {
   res.json({

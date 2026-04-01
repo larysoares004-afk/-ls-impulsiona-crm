@@ -813,7 +813,13 @@ select.inp{cursor:pointer}
       <div class="card-body" id="dashPipeline"></div>
     </div>
     <div class="card">
-      <div class="card-hdr"><div class="card-title">Agendamentos Hoje</div><button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('agenda')">Agenda</button></div>
+      <div class="card-hdr">
+        <div class="card-title">🎬 Vídeos de Hoje</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="date" id="dashVideoData" style="font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer" onchange="renderVideosHoje()">
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px" onclick="goTo('videos')">Ver Todos</button>
+        </div>
+      </div>
       <div class="card-body" id="dashHoje" style="padding:8px"></div>
     </div>
   </div>
@@ -2621,16 +2627,10 @@ function renderDashboard() {
     </div>`;
   }).join('');
 
-  // Agendamentos hoje
-  const apHoje=state.appointments.filter(a=>sameDay(a.date,new Date())).sort((a,b)=>a.time.localeCompare(b.time));
-  const hojeEl = document.getElementById('dashHoje');
-  if(hojeEl) hojeEl.innerHTML=apHoje.length===0
-    ?`<div style="text-align:center;padding:24px;color:var(--z400);font-size:12px">Nenhum agendamento hoje</div>`
-    :apHoje.map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;margin-bottom:6px;background:var(--z50)" onclick="goTo('agenda')">
-      <div style="width:36px;height:36px;border-radius:50%;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">${a.customerName.charAt(0)}</div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--z900)">${a.customerName}</div><div style="font-size:10px;color:var(--z500)">${a.serviceName} • ${a.time}</div></div>
-      <span class="badge" style="background:${a.status==='scheduled'?'#dbeafe':a.status==='completed'?'#d1fae5':'#f4f4f5'};color:${a.status==='scheduled'?'#1d4ed8':a.status==='completed'?'#065f46':'#52525b'}">${a.status==='scheduled'?'Agendado':a.status==='completed'?'Concluído':'Cancelado'}</span>
-    </div>`).join('');
+  // Inicializar data do input de vídeos para hoje
+  const dvInput = document.getElementById('dashVideoData');
+  if (dvInput && !dvInput.value) dvInput.value = new Date().toISOString().slice(0,10);
+  renderVideosHoje();
 
   updateHeader();
 
@@ -5399,19 +5399,17 @@ function _criarChart(canvas, chartData) {
 // Chart.js e meta integrados diretamente em renderDashboard
 
 function _renderMetaMes() {
+  // Desativado: renderDashboard já renderiza as 3 metas (dia/semana/mês) em dashMetaCard
+  return;
   var metaEl = document.getElementById('dashMeta');
   if(!metaEl) {
-    // Criar card de meta se não existe
     var statsEl = document.getElementById('dashStats');
     if(!statsEl) return;
-    // Adicionar após o statsEl
   }
-  // Meta de conversão (customizável via config)
   var meta = state.profile.metaConversao || 30;
   var mesAtual = state.customers.filter(function(c){ return sameMonth(c.createdAt, new Date()); });
   var convertidos = mesAtual.filter(function(c){ return c.status==='CONVERTEU'; }).length;
   var pct = Math.min(100, Math.round(convertidos/meta*100));
-  // Atualizar card de meta se existe
   var metaCard = document.getElementById('dashMetaCard');
   if(metaCard) {
     metaCard.innerHTML = '<div class="scard-ico" style="background:#fef3c7">'
@@ -6646,6 +6644,32 @@ document.addEventListener('DOMContentLoaded', function() {
   const logoBox = document.getElementById('sbLogoBox');
   if (logoBox) logoBox.addEventListener('click', () => document.getElementById('logoUpload').click());
 });
+
+// ── Vídeos de Hoje no Dashboard ──────────────────────────────────────────────
+async function renderVideosHoje() {
+  const el = document.getElementById('dashHoje');
+  if (!el) return;
+  const input = document.getElementById('dashVideoData');
+  const dataSel = input?.value || new Date().toISOString().slice(0,10);
+  try {
+    const videos = await api('GET', `/api/videos?data=${dataSel}`);
+    if (!videos || videos.length === 0) {
+      el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--z400);font-size:12px">Nenhum vídeo para ${dataSel}</div>`;
+      return;
+    }
+    el.innerHTML = videos.map(v => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;margin-bottom:6px;background:#f8fafc">
+        <div style="width:36px;height:36px;border-radius:50%;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">${(v.cliente_nome||'?').charAt(0)}</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:#1e293b">${v.cliente_nome||'—'}</div>
+          <div style="font-size:10px;color:#64748b">${v.tipo||'Vídeo'} • ${v.status||'Pendente'}</div>
+        </div>
+        <span style="font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;background:${v.status==='ENTREGUE'?'#dcfce7':'#fef3c7'};color:${v.status==='ENTREGUE'?'#16a34a':'#d97706'}">${v.status||'Pendente'}</span>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="text-align:center;padding:16px;color:var(--z400);font-size:12px">Sem dados</div>`;
+  }
+}
 
 // ── WhatsApp QR Gratuito (Baileys) ────────────────────────────────────────────
 let _wppQrPollTimer = null;
