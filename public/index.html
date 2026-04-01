@@ -2530,30 +2530,25 @@ function renderDashboard() {
     const fatMesFormatted = typeof fmt === 'function' ? fmt(fatMes) : fatMes.toFixed(2);
     metaCard.style.display = 'block';
     metaCard.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:700;color:#1e293b">Metas de Conversão</div>
+        <button onclick="editarTodasMetas()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700">✏️ Editar Metas</button>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
         <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta do Dia</div>
-            ${editMetaBtn('dia','Meta do Dia')}
-          </div>
+          <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Meta do Dia</div>
           <div style="font-size:20px;font-weight:800;color:#1e293b">${todayLeads}<span style="font-size:12px;color:#71717a">/${metaDia||'—'}</span></div>
           ${metaBar(pctDia,'#2563eb')}
           <div style="font-size:10px;color:#71717a;margin-top:3px">${pctDia}% atingido</div>
         </div>
         <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta da Semana</div>
-            ${editMetaBtn('semana','Meta da Semana')}
-          </div>
+          <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Meta da Semana</div>
           <div style="font-size:20px;font-weight:800;color:#1e293b">${conv}<span style="font-size:12px;color:#71717a">/${metaSem||'—'}</span></div>
           ${metaBar(pctSem,'#f59e0b')}
           <div style="font-size:10px;color:#71717a;margin-top:3px">${pctSem}% atingido</div>
         </div>
         <div style="background:#fff;border-radius:14px;border:1px solid #e4e4e7;padding:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px">Meta do Mês</div>
-            ${editMetaBtn('mes','Meta do Mês')}
-          </div>
+          <div style="font-size:11px;font-weight:700;color:#52525b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Meta do Mês</div>
           <div style="font-size:20px;font-weight:800;color:#1e293b">${clientesFechadosMes}<span style="font-size:12px;color:#71717a">/${metaMes||'—'}</span></div>
           ${metaBar(pctMes,'#10b981')}
           <div style="font-size:10px;color:#71717a;margin-top:3px">${pctMes}% atingido</div>
@@ -5404,6 +5399,49 @@ function _renderMetaMes() {
       +'<div style="margin-top:8px;height:4px;background:var(--z100);border-radius:2px">'
       +'<div style="height:4px;border-radius:2px;background:'+(pct>=100?'#2563eb':'#d97706')+';width:'+pct+'%;transition:width .5s"></div></div>';
   }
+}
+
+// ── Editar todas as metas de uma vez ─────────────────────────────────────────
+function editarTodasMetas() {
+  document.getElementById('_modalTodasMetas')?.remove();
+  const lsMetas = JSON.parse(localStorage.getItem('ls_metas') || '{}');
+  const m = document.createElement('div');
+  m.id = '_modalTodasMetas';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:400px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:17px;font-weight:800;color:#1e293b;margin-bottom:20px">✏️ Editar Metas</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">META DO DIA (conversões)</label>
+          <input id="_metaDia" type="number" min="0" value="${lsMetas.dia||0}" style="width:100%;padding:10px 14px;border:1.5px solid #2563eb;border-radius:8px;font-size:18px;font-weight:700;text-align:center;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">META DA SEMANA (conversões)</label>
+          <input id="_metaSem" type="number" min="0" value="${lsMetas.semana||0}" style="width:100%;padding:10px 14px;border:1.5px solid #f59e0b;border-radius:8px;font-size:18px;font-weight:700;text-align:center;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">META DO MÊS (conversões)</label>
+          <input id="_metaMes" type="number" min="0" value="${lsMetas.mes||0}" style="width:100%;padding:10px 14px;border:1.5px solid #10b981;border-radius:8px;font-size:18px;font-weight:700;text-align:center;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:22px">
+        <button onclick="document.getElementById('_modalTodasMetas').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button onclick="(function(){
+          const dia=parseInt(document.getElementById('_metaDia').value,10)||0;
+          const sem=parseInt(document.getElementById('_metaSem').value,10)||0;
+          const mes=parseInt(document.getElementById('_metaMes').value,10)||0;
+          const obj={dia,semana:sem,mes};
+          localStorage.setItem('ls_metas',JSON.stringify(obj));
+          document.getElementById('_modalTodasMetas').remove();
+          renderDashboard();
+          toast('Metas atualizadas!','success');
+        })()" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Salvar Metas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+  setTimeout(() => document.getElementById('_metaDia')?.select(), 100);
 }
 
 // ── Função para editar metas via modal ───────────────────────────────────────
