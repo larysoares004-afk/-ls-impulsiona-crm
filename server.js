@@ -2338,22 +2338,40 @@ const _silentLogger = {
   debug: ()=>{}, trace: ()=>{}, fatal: ()=>{},
 };
 
+let _baileysRetries = 0;
 async function iniciarBaileys() {
   if (_wppStatus === 'connecting' || _wppStatus === 'connected') return;
   _wppStatus = 'connecting';
   try {
     const QRCode = require('qrcode');
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = await import('@whiskeysockets/baileys');
+    const baileys = await import('@whiskeysockets/baileys');
+    const makeWASocket = baileys.default;
+    const { useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = baileys;
 
     if (!fs.existsSync(WPP_SESSION_DIR)) fs.mkdirSync(WPP_SESSION_DIR, { recursive: true });
     const { state: authState, saveCreds } = await useMultiFileAuthState(WPP_SESSION_DIR);
+
+    // Buscar a versão mais recente suportada do WhatsApp Web
+    let waVersion = [2, 3000, 1023169634];
+    try {
+      const { version } = await fetchLatestBaileysVersion();
+      waVersion = version;
+      console.log('📋 WhatsApp Web versão:', version.join('.'));
+    } catch(e) {
+      console.log('⚠️  Usando versão padrão do WhatsApp Web');
+    }
 
     const sock = makeWASocket({
       auth: authState,
       printQRInTerminal: false,
       logger: _silentLogger,
-      browser: ['LS Impulsiona CRM', 'Chrome', '1.0.0'],
-      connectTimeoutMs: 30000,
+      version: waVersion,
+      browser: Browsers ? Browsers.ubuntu('Chrome') : ['Ubuntu', 'Chrome', '20.0.04'],
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
+      markOnlineOnConnect: false,
+      syncFullHistory: false,
     });
     _wppSock = sock;
 
@@ -2362,26 +2380,35 @@ async function iniciarBaileys() {
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         _wppStatus = 'qr';
+        _baileysRetries = 0;
         try { _wppQR = await QRCode.toDataURL(qr); } catch(e) {}
         console.log('📱 WhatsApp QR gerado — escaneie no app');
       }
       if (connection === 'open') {
         _wppStatus = 'connected';
         _wppQR = null;
+        _baileysRetries = 0;
         console.log('✅ WhatsApp conectado:', sock.user?.id || '');
       }
       if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const loggedOut = statusCode === 401 || statusCode === DisconnectReason?.loggedOut;
+        const err = lastDisconnect?.error;
+        const statusCode = err?.output?.statusCode || err?.output?.payload?.statusCode;
+        const reason = DisconnectReason || {};
+        const loggedOut = statusCode === 401 || statusCode === reason.loggedOut;
+        console.log(`⚠️  WhatsApp desconectado — código: ${statusCode} | motivo: ${err?.message || 'desconhecido'}`);
         _wppStatus = 'disconnected';
         _wppQR = null;
         _wppSock = null;
         if (loggedOut) {
           try { fs.rmSync(WPP_SESSION_DIR, { recursive: true, force: true }); } catch(e) {}
           console.log('🔒 WhatsApp logout — sessão apagada');
+        } else if (_baileysRetries < 3) {
+          _baileysRetries++;
+          console.log(`🔄 Reconectando em 15s... (tentativa ${_baileysRetries}/3)`);
+          setTimeout(iniciarBaileys, 15000);
         } else {
-          console.log('⚠️  WhatsApp desconectado, reconectando em 10s...');
-          setTimeout(iniciarBaileys, 10000);
+          console.log('❌ Máximo de tentativas atingido. Aguarde reconexão manual.');
+          _baileysRetries = 0;
         }
       }
     });
