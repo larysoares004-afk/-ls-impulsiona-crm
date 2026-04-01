@@ -382,24 +382,26 @@ db.exec(`CREATE TABLE IF NOT EXISTS servicos (
   }
 })();
 
-// ── Forçar serviços corretos LS Impulsiona (sem duplicatas, com versionamento) ─
+// ── Forçar serviços corretos LS Impulsiona ────────────────────────────────────
+// Os serviços ficam no config.services (JSON) — apagamos a entrada antiga para
+// o frontend usar seus defaults corretos (Pacote 4/5/6/7 Vídeos, etc.)
 try {
   const svVer = db.prepare("SELECT valor FROM config WHERE chave='servicos_version'").get();
-  if (!svVer || svVer.valor !== 'ls-v3') {
-    db.exec('PRAGMA foreign_keys = OFF');
-    db.exec('DELETE FROM servicos');
-    db.exec('PRAGMA foreign_keys = ON');
-    const ins2 = db.prepare("INSERT INTO servicos (nome, preco, descricao, cor) VALUES (?,?,?,?)");
-    ins2.run('Pacote 4 Vídeos Persuasivos', 997,  'Pacote com 4 vídeos persuasivos', '#2563eb');
-    ins2.run('Pacote 5 Vídeos Persuasivos', 1297, 'Pacote com 5 vídeos persuasivos', '#3b82f6');
-    ins2.run('Pacote 6 Vídeos Persuasivos', 1597, 'Pacote com 6 vídeos persuasivos', '#6366f1');
-    ins2.run('Pacote 7 Vídeos Persuasivos', 1997, 'Pacote com 7 vídeos persuasivos', '#8b5cf6');
-    ins2.run('Tráfego Pago', 800,  'Gestão de tráfego pago', '#f97316');
-    ins2.run('Social Media', 600,  'Gestão de redes sociais', '#f59e0b');
-    ins2.run('Automação',    1500, 'Automação de marketing',  '#10b981');
-    ins2.run('CRM',          300,  'Sistema CRM',             '#0d9488');
-    db.prepare("INSERT OR REPLACE INTO config (chave,valor) VALUES ('servicos_version','ls-v3')").run();
-    console.log('Serviços LS Impulsiona atualizados (ls-v3)');
+  if (!svVer || svVer.valor !== 'ls-v4') {
+    // Substituir config.services pelos serviços corretos da LS Impulsiona
+    const lsServices = JSON.stringify([
+      {id:'s1',name:'Pacote 4 Vídeos Persuasivos',duration:30,price:997,  color:'#2563eb',description:'Pacote com 4 vídeos persuasivos para marketing'},
+      {id:'s2',name:'Pacote 5 Vídeos Persuasivos',duration:30,price:1297, color:'#3b82f6',description:'Pacote com 5 vídeos persuasivos para marketing'},
+      {id:'s3',name:'Pacote 6 Vídeos Persuasivos',duration:30,price:1597, color:'#6366f1',description:'Pacote com 6 vídeos persuasivos para marketing'},
+      {id:'s4',name:'Pacote 7 Vídeos Persuasivos',duration:30,price:1997, color:'#8b5cf6',description:'Pacote com 7 vídeos persuasivos para marketing'},
+      {id:'s5',name:'Tráfego Pago',               duration:0, price:800,  color:'#f97316',description:'Gestão de tráfego pago e anúncios'},
+      {id:'s6',name:'Social Media',                duration:0, price:600,  color:'#f59e0b',description:'Gestão de redes sociais'},
+      {id:'s7',name:'Automação',                   duration:0, price:1500, color:'#10b981',description:'Automação de marketing e processos'},
+      {id:'s8',name:'CRM',                         duration:0, price:300,  color:'#0d9488',description:'Sistema CRM e gestão de clientes'},
+    ]);
+    db.prepare("INSERT OR REPLACE INTO config (chave,valor) VALUES ('services',?)").run(lsServices);
+    db.prepare("INSERT OR REPLACE INTO config (chave,valor) VALUES ('servicos_version','ls-v4')").run();
+    console.log('Serviços LS Impulsiona atualizados (ls-v4)');
   }
 } catch(e) { console.error('Erro ao corrigir serviços:', e.message); }
 
