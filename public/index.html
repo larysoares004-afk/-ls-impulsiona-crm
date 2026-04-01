@@ -845,6 +845,17 @@ select.inp{cursor:pointer}
       CSV
     </button>
   </div>
+  <!-- Vídeos de Hoje -->
+  <div id="videosHojeLeads" style="padding:0 0 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:15px;font-weight:700;color:var(--z900)">🎬 Vídeos de Hoje</span>
+        <span id="videosHojeBadge" style="background:#dbeafe;color:#2563eb;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700">0</span>
+      </div>
+      <input type="date" id="videosHojeData" class="inp" style="width:145px;font-size:12px;padding:5px 8px" onchange="renderVideosHojeLeads()">
+    </div>
+    <div id="videosHojeList" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+  </div>
   <div class="kanban" id="kanbanBoard"></div>
 </div>
 
@@ -2680,7 +2691,37 @@ const COLS=[
   {id:'INDICAÇÃO', title:'Indicação',       color:'#0d9488'},
 ];
 
+async function renderVideosHojeLeads() {
+  const dataEl = document.getElementById('videosHojeData');
+  const hoje = new Date().toISOString().slice(0,10);
+  if (dataEl && !dataEl.value) dataEl.value = hoje;
+  const data = (dataEl && dataEl.value) || hoje;
+  const list = document.getElementById('videosHojeList');
+  const badge = document.getElementById('videosHojeBadge');
+  if (!list) return;
+  try {
+    const videos = await api('GET', `/api/videos?data=${data}`);
+    const arr = Array.isArray(videos) ? videos : (videos.videos || []);
+    if (badge) badge.textContent = arr.length;
+    if (arr.length === 0) {
+      list.innerHTML = `<div style="color:var(--z400);font-size:12px;padding:8px 0">Nenhum vídeo agendado para este dia</div>`;
+    } else {
+      list.innerHTML = arr.map(v => {
+        const statusColor = v.status === 'ENVIADO' ? '#10b981' : v.status === 'PENDENTE' ? '#f59e0b' : '#6366f1';
+        return `<div style="background:#fff;border:1px solid var(--z200);border-radius:10px;padding:10px 14px;min-width:200px;max-width:260px;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+          <div style="font-size:12px;font-weight:700;color:var(--z900);margin-bottom:3px">${v.cliente_nome||'—'}</div>
+          <div style="font-size:11px;color:var(--z500);margin-bottom:5px">${v.tipo||'Vídeo'}</div>
+          <span style="font-size:10px;font-weight:700;background:${statusColor}22;color:${statusColor};border-radius:20px;padding:2px 8px">${v.status||'PENDENTE'}</span>
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    if (list) list.innerHTML = `<div style="color:var(--z400);font-size:12px">Sem dados</div>`;
+  }
+}
+
 function renderKanban(){
+  renderVideosHojeLeads();
   const q=(document.getElementById('leadsSearch')||{value:''}).value.toLowerCase();
   const board=document.getElementById('kanbanBoard');
   if(!board)return;
