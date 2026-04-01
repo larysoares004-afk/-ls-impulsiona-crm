@@ -114,9 +114,14 @@ db.exec(`CREATE TABLE IF NOT EXISTS vendas (
   pagamento       TEXT DEFAULT 'PIX',
   servico         TEXT,
   tipo            TEXT DEFAULT 'Venda',
+  tipo_cobranca   TEXT DEFAULT 'Integral',
+  data_entrega_video TEXT,
   criado_por      INTEGER,
   criado_em       TEXT DEFAULT (datetime('now','localtime'))
 )`);
+// Adicionar colunas novas em bancos existentes (ignorar erro se já existe)
+try { db.exec("ALTER TABLE vendas ADD COLUMN tipo_cobranca TEXT DEFAULT 'Integral'"); } catch(e) {}
+try { db.exec("ALTER TABLE vendas ADD COLUMN data_entrega_video TEXT"); } catch(e) {}
 db.exec(`CREATE TABLE IF NOT EXISTS agendamentos (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   lead_id         INTEGER,
@@ -713,8 +718,8 @@ app.get('/api/vendas', auth, (req, res) => {
 app.post('/api/vendas', auth, (req, res) => {
   const d = req.body;
   if (!d.valor || +d.valor <= 0) return res.status(400).json({ error: 'Valor inválido' });
-  const r = db.prepare('INSERT INTO vendas (lead_id,cliente_nome,valor,pagamento,servico,tipo,criado_por) VALUES (?,?,?,?,?,?,?)')
-    .run(d.lead_id||null, d.cliente_nome||'', +d.valor, d.pagamento||'PIX', d.servico||'', d.tipo||'Venda', req.user.id);
+  const r = db.prepare('INSERT INTO vendas (lead_id,cliente_nome,valor,pagamento,servico,tipo,tipo_cobranca,data_entrega_video,criado_por) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(d.lead_id||null, d.cliente_nome||'', +d.valor, d.pagamento||'PIX', d.servico||'', d.tipo||'Venda', d.tipo_cobranca||'Integral', d.data_entrega_video||null, req.user.id);
   if (d.tipo === 'Venda' && d.lead_id) {
     db.prepare("UPDATE leads SET status='CONVERTEU',atualizado_em=datetime('now','localtime') WHERE id=?").run(d.lead_id);
   }
