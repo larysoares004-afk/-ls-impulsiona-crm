@@ -637,8 +637,8 @@ async function renderRanking() {
 
   const html = `
   <div class="ph">
-    <div><h1 class="ptitle">Ranking</h1><div class="psub">Pontuacao dos atendentes LS Impulsiona</div></div>
-    ${isAdmin ? '<span style="font-size:11px;color:var(--z500)">Clique nos pontos para editar</span>' : ''}
+    <div><h1 class="ptitle">Ranking</h1><div class="psub">Pontuação dos atendentes LS Impulsiona</div></div>
+    ${isAdmin ? '<button onclick="adicionarAtendente()" style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">+ Novo Atendente</button>' : ''}
   </div>
 
   <div class="g2">
@@ -670,7 +670,7 @@ async function renderRanking() {
                     : r.pontos
                   } pts
                 </td>
-                ${isAdmin ? `<td style="padding:12px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="editarPontosRanking(${r.id},'${r.nome}',${r.pontos},${r.vendas})">Editar</button></td>` : ''}
+                ${isAdmin ? `<td style="padding:12px;display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="editarPontosRanking(${r.id},'${r.nome}',${r.pontos},${r.vendas})">Editar</button><button class="btn" style="font-size:11px;padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer" onclick="removerAtendente(${r.id},'${r.nome}')">✕</button></td>` : ''}
               </tr>
             `).join('') || '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--z400)">Sem dados de ranking</td></tr>'}
           </tbody>
@@ -787,6 +787,64 @@ function editarPontosRanking(id, nome, pontosAtual, vendasAtual) {
   });
 
   setTimeout(() => document.getElementById('_rankPontos')?.select(), 100);
+}
+
+function adicionarAtendente() {
+  document.getElementById('_modalNovoAtend')?.remove();
+  const m = document.createElement('div');
+  m.id = '_modalNovoAtend';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:360px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:20px">+ Novo Atendente</div>
+      <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">NOME DO ATENDENTE</label>
+      <input id="_novoAtendNome" type="text" placeholder="Ex: João Silva" style="width:100%;padding:12px 14px;border:1.5px solid #2563eb;border-radius:8px;font-size:15px;font-weight:700;box-sizing:border-box">
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('_modalNovoAtend').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button id="_btnSalvarAtend" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Adicionar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  setTimeout(() => document.getElementById('_novoAtendNome')?.focus(), 100);
+
+  document.getElementById('_btnSalvarAtend').addEventListener('click', async () => {
+    const nome = document.getElementById('_novoAtendNome').value.trim();
+    if (!nome) { if (typeof toast === 'function') toast('Digite o nome', 'error'); return; }
+    try {
+      const res = await _api('/api/ranking', { method: 'POST', body: JSON.stringify({ nome }) });
+      const d = await res.json();
+      if (d.ok) { m.remove(); if (typeof toast === 'function') toast(`${nome} adicionado!`, 'success'); renderRanking(); }
+      else if (typeof toast === 'function') toast(d.error || 'Erro', 'error');
+    } catch(e) { if (typeof toast === 'function') toast(e.message, 'error'); }
+  });
+}
+
+async function removerAtendente(id, nome) {
+  document.getElementById('_modalRemAtend')?.remove();
+  const m = document.createElement('div');
+  m.id = '_modalRemAtend';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:340px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:16px;font-weight:800;color:#1e293b;margin-bottom:8px">Remover ${nome}?</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:22px">Esta ação não pode ser desfeita.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('_modalRemAtend').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#64748b">Cancelar</button>
+        <button id="_btnConfirmRem" style="flex:1;padding:11px;border:none;border-radius:8px;background:#dc2626;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Remover</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+
+  document.getElementById('_btnConfirmRem').addEventListener('click', async () => {
+    try {
+      const res = await _api(`/api/ranking/${id}`, { method: 'DELETE' });
+      const d = await res.json();
+      if (d.ok) { m.remove(); if (typeof toast === 'function') toast(`${nome} removido`, 'info'); renderRanking(); }
+      else if (typeof toast === 'function') toast(d.error || 'Erro', 'error');
+    } catch(e) { if (typeof toast === 'function') toast(e.message, 'error'); }
+  });
 }
 
 // Funcoes auxiliares (mantidas para compatibilidade)

@@ -2000,6 +2000,28 @@ app.get('/api/ranking', auth, (req, res) => {
   }
 });
 
+// POST /api/ranking - Admin adiciona novo atendente
+app.post('/api/ranking', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    const { nome } = req.body;
+    if (!nome) return res.status(400).json({ error: 'Nome obrigatório' });
+    const r = db.prepare("INSERT INTO ranking (nome, vendas, pontos) VALUES (?,0,0)").run(nome);
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/ranking/:id - Admin remove atendente
+app.delete('/api/ranking/:id', auth, requireRole('admin', 'gestor'), (req, res) => {
+  try {
+    db.prepare("DELETE FROM ranking WHERE id=?").run(req.params.id);
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PUT /api/ranking/:id - Admin pode editar pontos/vendas manualmente
 app.put('/api/ranking/:id', auth, requireRole('admin', 'gestor'), (req, res) => {
   try {
