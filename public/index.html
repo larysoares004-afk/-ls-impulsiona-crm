@@ -996,9 +996,10 @@ select.inp{cursor:pointer}
         <div id="wppQrMsg" style="font-size:13px;color:#64748b;text-align:center">Clique em "Conectar" para gerar o QR Code</div>
         <div id="wppQrNumber" style="display:none;font-size:14px;font-weight:700;color:#10b981"></div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:12px">
-        <button id="btnConectarQR" onclick="conectarWppQR()" style="flex:1;padding:11px;background:#25D366;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📲 Conectar</button>
-        <button id="btnDesconectarQR" onclick="desconectarWppQR()" style="display:none;flex:1;padding:11px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Desconectar</button>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button id="btnConectarQR" onclick="conectarWppQR()" style="flex:1;min-width:120px;padding:11px;background:#25D366;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📲 Conectar</button>
+        <button id="btnAtualizarQR" onclick="conectarWppQR()" style="display:none;flex:1;min-width:120px;padding:11px;background:#f59e0b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🔄 Atualizar QR</button>
+        <button id="btnDesconectarQR" onclick="desconectarWppQR()" style="display:none;flex:1;min-width:120px;padding:11px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Desconectar</button>
       </div>
     </div>
   </div>
@@ -6721,8 +6722,14 @@ function _wppQrSetUI(status, qr, number) {
   const msg   = document.getElementById('wppQrMsg');
   const num   = document.getElementById('wppQrNumber');
   const btnC  = document.getElementById('btnConectarQR');
+  const btnA  = document.getElementById('btnAtualizarQR');
   const btnD  = document.getElementById('btnDesconectarQR');
   if (!badge) return;
+
+  // Ocultar todos os botões primeiro
+  if (btnC) btnC.style.display = 'none';
+  if (btnA) btnA.style.display = 'none';
+  if (btnD) btnD.style.display = 'none';
 
   if (status === 'connected') {
     badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#dcfce7;color:#16a34a';
@@ -6730,22 +6737,21 @@ function _wppQrSetUI(status, qr, number) {
     img.style.display = 'none';
     msg.textContent = 'WhatsApp conectado com sucesso!';
     if (number) { num.style.display='block'; num.textContent = '📞 +' + number; }
-    if (btnC) btnC.style.display = 'none';
     if (btnD) btnD.style.display = 'block';
     clearInterval(_wppQrPollTimer);
   } else if (status === 'qr') {
     badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#fef3c7;color:#d97706';
     badge.textContent = '📱 Aguardando scan';
-    if (qr) { img.style.display='block'; img.innerHTML=`<img src="${qr}" style="width:220px;height:220px">`; }
-    msg.textContent = 'Abra o WhatsApp → Menu → Aparelhos conectados → Conectar aparelho';
+    if (qr) { img.style.display='block'; img.innerHTML=`<img src="${qr}" style="width:240px;height:240px;border-radius:8px">`; }
+    msg.style.cssText = 'font-size:13px;color:#64748b;text-align:center;max-width:280px';
+    msg.innerHTML = '<strong>Abra o WhatsApp</strong> → Menu ⋮ → <strong>Aparelhos conectados</strong> → Conectar aparelho<br><span style="font-size:11px;color:#94a3b8;margin-top:4px;display:block">O QR expira em ~60 segundos</span>';
     num.style.display = 'none';
-    if (btnC) btnC.style.display = 'none';
-    if (btnD) btnD.style.display = 'none';
+    if (btnA) btnA.style.display = 'block'; // Botão atualizar QR
   } else if (status === 'connecting') {
     badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#e0f2fe;color:#0284c7';
     badge.textContent = '⏳ Conectando...';
     img.style.display = 'none';
-    msg.textContent = 'Gerando QR Code, aguarde...';
+    msg.textContent = 'Gerando QR Code, aguarde 5-10 segundos...';
   } else {
     badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b';
     badge.textContent = 'Desconectado';
@@ -6753,7 +6759,6 @@ function _wppQrSetUI(status, qr, number) {
     msg.textContent = 'Clique em "Conectar" para gerar o QR Code';
     num.style.display = 'none';
     if (btnC) btnC.style.display = 'block';
-    if (btnD) btnD.style.display = 'none';
     clearInterval(_wppQrPollTimer);
   }
 }

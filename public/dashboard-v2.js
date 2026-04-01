@@ -302,82 +302,216 @@ async function renderVideos() {
   try {
     const res = await _api('/api/videos');
     videos = await res.json();
+    if (!Array.isArray(videos)) videos = [];
   } catch(e) { videos = []; }
+
+  const rowCru = videos.filter(v => !v.status || v.status==='CRU' || v.status==='Cru' || v.status==='AGUARDANDO');
+  const rowPronto = videos.filter(v => v.status==='PRONTO' || v.status==='Pronto');
+  const rowEnviado = videos.filter(v => v.status==='ENVIADO');
+
+  function badgeStatus(s) {
+    if (!s || s==='CRU' || s==='Cru' || s==='AGUARDANDO') return '<span style="padding:2px 8px;border-radius:6px;background:#fef3c7;color:#d97706;font-size:10px;font-weight:700">Cru</span>';
+    if (s==='PRONTO' || s==='Pronto') return '<span style="padding:2px 8px;border-radius:6px;background:#dbeafe;color:#2563eb;font-size:10px;font-weight:700">Pronto</span>';
+    return '<span style="padding:2px 8px;border-radius:6px;background:#d1fae5;color:#065f46;font-size:10px;font-weight:700">Enviado</span>';
+  }
+
+  function rowsVideos(arr, showEnviar) {
+    if (!arr.length) return '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Nenhum vídeo</td></tr>';
+    return arr.map(v => `
+      <tr style="cursor:pointer" onclick="abrirDetalheVideo(${v.id})">
+        <td style="font-weight:700">${v.cliente_nome||'—'}</td>
+        <td style="color:#64748b;font-size:12px">${v.tipo||'—'}</td>
+        <td style="color:#64748b;font-size:12px">${v.data_entrega||'—'}</td>
+        <td>${badgeStatus(v.status)}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          ${showEnviar ? `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="abrirEnviarVideo(${v.id})">📤 Enviar</button>` : ''}
+          ${!showEnviar && v.status !== 'ENVIADO' ? `<button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="marcarVideoPronto(${v.id})">✅ Pronto</button>` : ''}
+          <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;margin-left:4px" onclick="deletarVideo(${v.id})">🗑</button>
+        </td>
+      </tr>`).join('');
+  }
 
   const html = `
   <div class="ph">
-    <div><h1 class="ptitle">Videos</h1><div class="psub">Gestao de videos crus e prontos</div></div>
-    <button class="btn btn-primary" onclick="abrirModalVideo()">+ Novo Video</button>
+    <div><h1 class="ptitle">🎬 Vídeos</h1><div class="psub">Gestão de vídeos crus e prontos para entrega</div></div>
+    <button class="btn btn-primary" onclick="abrirModalVideo()">+ Novo Vídeo</button>
   </div>
 
-  <!-- Secao Videos Crus -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-hdr">
-      <div class="card-title">Videos Crus</div>
-      <span style="font-size:11px;color:var(--z500)">Aguardando edicao</span>
+      <div class="card-title">Vídeos Crus <span style="font-size:11px;font-weight:400;color:#94a3b8">${rowCru.length}</span></div>
+      <span style="font-size:11px;color:var(--z500)">Aguardando edição</span>
     </div>
     <div style="overflow-x:auto">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Data</th>
-            <th>Status</th>
-            <th>Acoes</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${videos.filter(v => v.status==='Cru' || v.status==='CRU' || !v.status || v.status==='AGUARDANDO').map(v => `
-            <tr>
-              <td style="font-weight:600">${v.cliente_nome||''}</td>
-              <td>${typeof fmtDate==='function'?fmtDate(v.criado_em||v.data_entrega):v.criado_em||''}</td>
-              <td><span style="padding:2px 8px;border-radius:6px;background:#fef3c7;color:#d97706;font-size:10px;font-weight:700">Cru</span></td>
-              <td>
-                <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="marcarVideoPronto(${v.id})">Marcar Pronto</button>
-                <button class="btn btn-danger" style="font-size:11px;padding:4px 8px" onclick="deletarVideo(${v.id})">Excluir</button>
-              </td>
-            </tr>
-          `).join('') || '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--z400)">Nenhum video cru</td></tr>'}
-        </tbody>
-      </table>
+      <table class="tbl"><thead><tr><th>Cliente</th><th>Tipo</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>${rowsVideos(rowCru, false)}</tbody></table>
     </div>
   </div>
 
-  <!-- Secao Videos Prontos -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-hdr">
+      <div class="card-title">Prontos para Entrega <span style="font-size:11px;font-weight:400;color:#94a3b8">${rowPronto.length}</span></div>
+      <span style="font-size:11px;color:#2563eb;font-weight:600">Clique na linha para detalhes</span>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr><th>Cliente</th><th>Tipo</th><th>Data Entrega</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>${rowsVideos(rowPronto, true)}</tbody></table>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-hdr">
-      <div class="card-title">Videos Prontos</div>
-      <span style="font-size:11px;color:var(--z500)">Editados e prontos para entrega</span>
+      <div class="card-title">Enviados <span style="font-size:11px;font-weight:400;color:#94a3b8">${rowEnviado.length}</span></div>
     </div>
     <div style="overflow-x:auto">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Data Entrega</th>
-            <th>Status</th>
-            <th>Acoes</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${videos.filter(v => v.status==='Pronto' || v.status==='PRONTO' || v.status==='ENVIADO').map(v => `
-            <tr>
-              <td style="font-weight:600">${v.cliente_nome||''}</td>
-              <td>${v.data_entrega||typeof fmtDate==='function'?fmtDate(v.criado_em):v.criado_em||''}</td>
-              <td><span style="padding:2px 8px;border-radius:6px;background:#d1fae5;color:#065f46;font-size:10px;font-weight:700">${v.status==='ENVIADO'?'Enviado':'Pronto'}</span></td>
-              <td>
-                <button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="enviarVideoCliente(${v.id}, this.dataset.nome)" data-nome="${(v.cliente_nome||'').replace(/"/g,'&quot;')}">Enviar para Cliente</button>
-              </td>
-            </tr>
-          `).join('') || '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--z400)">Nenhum video pronto</td></tr>'}
-        </tbody>
-      </table>
+      <table class="tbl"><thead><tr><th>Cliente</th><th>Tipo</th><th>Data Entrega</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody>${rowsVideos(rowEnviado, false)}</tbody></table>
     </div>
-  </div>
-
-  `;
+  </div>`;
 
   document.getElementById('view-videos').innerHTML = html;
+}
+
+// Abrir modal de detalhes do vídeo
+async function abrirDetalheVideo(id) {
+  let video;
+  try {
+    const res = await _api('/api/videos');
+    const todos = await res.json();
+    video = todos.find(v => v.id === id);
+  } catch(e) { return; }
+  if (!video) return;
+
+  document.getElementById('_modalVideoDetalhe')?.remove();
+  const m = document.createElement('div');
+  m.id = '_modalVideoDetalhe';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center';
+
+  const isPronto = video.status === 'PRONTO' || video.status === 'Pronto';
+  const isEnviado = video.status === 'ENVIADO';
+
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#1e293b">🎬 Detalhes do Vídeo</div>
+        <button onclick="document.getElementById('_modalVideoDetalhe').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b">✕</button>
+      </div>
+      <div style="display:grid;gap:10px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px">
+          <span style="font-size:12px;color:#64748b;font-weight:600">Cliente</span>
+          <span style="font-size:13px;font-weight:700">${video.cliente_nome||'—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px">
+          <span style="font-size:12px;color:#64748b;font-weight:600">Tipo</span>
+          <span style="font-size:13px;font-weight:700">${video.tipo||'—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px">
+          <span style="font-size:12px;color:#64748b;font-weight:600">Data Entrega</span>
+          <span style="font-size:13px;font-weight:700">${video.data_entrega||'—'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px;background:#f8fafc;border-radius:8px">
+          <span style="font-size:12px;color:#64748b;font-weight:600">Status</span>
+          <span style="font-size:13px;font-weight:700;color:${isEnviado?'#10b981':isPronto?'#2563eb':'#d97706'}">${video.status||'CRU'}</span>
+        </div>
+        ${video.url ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#f8fafc;border-radius:8px">
+          <span style="font-size:12px;color:#64748b;font-weight:600">Arquivo</span>
+          <a href="${video.url}" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none">📎 Baixar</a>
+        </div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px">
+        ${isPronto ? `<button onclick="document.getElementById('_modalVideoDetalhe').remove();abrirEnviarVideo(${video.id})" style="flex:2;padding:11px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:13px;font-weight:700">📤 Enviar para Cliente</button>` : ''}
+        ${!isPronto && !isEnviado ? `<button onclick="marcarVideoPronto(${video.id});document.getElementById('_modalVideoDetalhe').remove()" style="flex:1;padding:11px;border:none;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;font-size:13px;font-weight:700">✅ Marcar Pronto</button>` : ''}
+        <button onclick="document.getElementById('_modalVideoDetalhe').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#64748b">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+}
+
+// Modal de envio de vídeo para cliente via WhatsApp View Once
+async function abrirEnviarVideo(videoId) {
+  // Buscar leads com telefone para preencher o select
+  let leads = [];
+  try {
+    const r = await _api('/api/leads');
+    leads = await r.json();
+    if (!Array.isArray(leads)) leads = [];
+  } catch(e) {}
+
+  document.getElementById('_modalEnviarVideo')?.remove();
+  const m = document.createElement('div');
+  m.id = '_modalEnviarVideo';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center';
+  m.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div style="font-size:17px;font-weight:800;color:#1e293b">📤 Enviar Vídeo para Cliente</div>
+        <button onclick="document.getElementById('_modalEnviarVideo').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b">✕</button>
+      </div>
+
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#92400e">
+        ⚠️ Requer WhatsApp conectado via QR Code (aba Conexões). O vídeo será enviado em <strong>visualização única</strong> — o cliente verá apenas uma vez.
+      </div>
+
+      <div style="display:grid;gap:12px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">SELECIONAR CLIENTE (com telefone)</label>
+          <select id="_envVidSelect" onchange="(()=>{const v=this.value;if(v){document.getElementById('_envVidTel').value=v;}})()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff">
+            <option value="">— Selecionar da lista de leads —</option>
+            ${leads.filter(l=>l.phone||l.telefone).map(l=>`<option value="${(l.phone||l.telefone||'').replace(/\D/g,'')}">${l.name||l.nome} — ${l.phone||l.telefone}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">TELEFONE DO CLIENTE *</label>
+          <input type="text" id="_envVidTel" placeholder="5571999999999 (com DDI+DDD)" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+          <p style="font-size:11px;color:#94a3b8;margin:3px 0 0">Ex: 5571981234567 (DDI 55 + DDD + número)</p>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">LEGENDA (opcional)</label>
+          <input type="text" id="_envVidCaption" placeholder="Seu vídeo está pronto! 🎬" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#f0fdf4;border-radius:8px">
+          <input type="checkbox" id="_envVidViewOnce" checked style="width:18px;height:18px;cursor:pointer">
+          <label for="_envVidViewOnce" style="font-size:13px;font-weight:600;cursor:pointer;color:#166534">👁️ Visualização única (recomendado)</label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('_modalEnviarVideo').remove()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;color:#64748b">Cancelar</button>
+        <button id="_btnConfEnviar" onclick="confirmarEnviarVideo(${videoId})" style="flex:2;padding:11px;border:none;border-radius:8px;background:#25D366;color:#fff;cursor:pointer;font-size:13px;font-weight:700">📲 Enviar via WhatsApp</button>
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+  m.addEventListener('click', e => { if(e.target===m) m.remove(); });
+}
+
+async function confirmarEnviarVideo(videoId) {
+  const numero = (document.getElementById('_envVidTel')?.value || '').replace(/\D/g,'');
+  const caption = document.getElementById('_envVidCaption')?.value || '';
+  const viewOnce = document.getElementById('_envVidViewOnce')?.checked !== false;
+  if (!numero || numero.length < 10) { toast('Informe o telefone do cliente com DDI+DDD', 'error'); return; }
+
+  const btn = document.getElementById('_btnConfEnviar');
+  if (btn) { btn.textContent = 'Enviando...'; btn.disabled = true; }
+
+  try {
+    const res = await _api('/api/wpp-qr/send-video', {
+      method: 'POST',
+      body: JSON.stringify({ numero, videoId, caption, viewOnce })
+    });
+    const d = await res.json();
+    if (d.ok) {
+      toast('✅ Vídeo enviado com sucesso!', 'success');
+      document.getElementById('_modalEnviarVideo')?.remove();
+      renderVideos();
+    } else {
+      toast(d.error || 'Erro ao enviar', 'error');
+      if (btn) { btn.textContent = '📲 Enviar via WhatsApp'; btn.disabled = false; }
+    }
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+    if (btn) { btn.textContent = '📲 Enviar via WhatsApp'; btn.disabled = false; }
+  }
 }
 
 function abrirModalVideo() {
@@ -474,13 +608,7 @@ async function deletarVideo(id) {
   } catch(e) { toast(e.message, 'error'); }
 }
 
-function enviarVideoCliente(id, clienteNome) {
-  const msg = `Ola ${clienteNome}! Seu video esta pronto. Em breve enviaremos o link de acesso.`;
-  const wpp = encodeURIComponent(msg);
-  toast('Video marcado como enviado!', 'success');
-  _api(`/api/videos/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'ENVIADO' }) })
-    .then(() => renderVideos()).catch(() => {});
-}
+// enviarVideoCliente substituído por abrirEnviarVideo + confirmarEnviarVideo acima
 
 // ═══════════════════════════════════════════════════════
 // INDICACOES

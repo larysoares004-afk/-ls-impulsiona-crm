@@ -2481,6 +2481,37 @@ app.post('/api/wpp-qr/send', auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/wpp-qr/send-video — Enviar vídeo como visualização única
+app.post('/api/wpp-qr/send-video', auth, async (req, res) => {
+  const { numero, videoId, caption, viewOnce } = req.body;
+  if (!numero || !videoId) return res.status(400).json({ error: 'numero e videoId obrigatórios' });
+  if (_wppStatus !== 'connected' || !_wppSock) {
+    return res.status(503).json({ error: 'WhatsApp não conectado. Conecte primeiro na aba Conexões → WhatsApp QR.' });
+  }
+  try {
+    const video = db.prepare('SELECT * FROM videos WHERE id=?').get(+videoId);
+    if (!video || !video.url) return res.status(404).json({ error: 'Vídeo não encontrado' });
+
+    const videoPath = path.join(__dirname, video.url.startsWith('/') ? video.url.slice(1) : video.url);
+    if (!fs.existsSync(videoPath)) return res.status(404).json({ error: 'Arquivo não encontrado no servidor' });
+
+    const jid = numero.replace(/\D/g,'') + '@s.whatsapp.net';
+    const videoBuffer = fs.readFileSync(videoPath);
+
+    await _wppSock.sendMessage(jid, {
+      video: videoBuffer,
+      viewOnce: viewOnce !== false,
+      caption: caption || '',
+      mimetype: 'video/mp4',
+    });
+
+    db.prepare("UPDATE videos SET status='ENVIADO' WHERE id=?").run(+videoId);
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Iniciar servidor ──────────────────────────────────────────────────────────
 
 app.listen(PORT, '0.0.0.0', () => {
