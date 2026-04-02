@@ -3883,14 +3883,26 @@ function _iniciarPollAtendimentos() {
   _pararPollAtendimentos();
   carregarConversasMeta();
   carregarConversasInstagram();
+  _sincronizarBaileys();
   window._attPollTimer = setInterval(() => {
     if (uiState.currentTab === 'atendimentos') {
       carregarConversasMeta();
       carregarConversasInstagram();
+      _sincronizarBaileys();
     } else {
       _pararPollAtendimentos();
     }
-  }, 30000);  // 30 segundos — silencioso, sem animação
+  }, 15000);  // 15 segundos
+}
+
+async function _sincronizarBaileys() {
+  try {
+    const bc = await api('GET', '/api/wpp-qr/conversations');
+    if (Array.isArray(bc) && bc.length > 0) {
+      S(s => s.baileysConversas = bc);
+      if (uiState.currentTab === 'atendimentos') renderAttList();
+    }
+  } catch(e) {}
 }
 
 function _pararPollAtendimentos() {
@@ -6353,8 +6365,19 @@ async function sincronizarHistoricoMeta(token, phoneId, bizId) {
     const el = document.getElementById('metaBusinessId');
     bizId = el?.value?.trim() || JSON.parse(localStorage.getItem('alliance_wpp_api')||'{}').bizId;
   }
+  // Se não tem token Meta, sincroniza apenas Baileys
   if (!token || !phoneId) {
-    toast('⚠️ Configure o Token e Phone Number ID na aba WhatsApp primeiro', 'error');
+    toast('🔄 Sincronizando conversas do WhatsApp QR...', 'info');
+    try {
+      const bc = await api('GET', '/api/wpp-qr/conversations');
+      if (Array.isArray(bc)) {
+        S(s => s.baileysConversas = bc);
+        renderAttList();
+        toast(`✅ ${bc.length} conversa(s) carregada(s) do WhatsApp QR`, 'success');
+      }
+    } catch(e) {
+      toast('Sem conversas ainda. Aguarde uma mensagem chegar.', 'info');
+    }
     return;
   }
   toast('🔄 Buscando histórico de conversas...', 'info');
