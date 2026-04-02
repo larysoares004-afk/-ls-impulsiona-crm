@@ -2418,11 +2418,24 @@ async function iniciarBaileys() {
       messages.forEach(async msg => {
         if (msg.key.fromMe) return;
         const from = msg.key.remoteJid || '';
-        if (from.endsWith('@g.us')) return;
-        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-        if (!text) return;
+        if (from.endsWith('@g.us') || from.endsWith('@broadcast')) return;
+        const text = msg.message?.conversation
+          || msg.message?.extendedTextMessage?.text
+          || msg.message?.imageMessage?.caption
+          || msg.message?.videoMessage?.caption
+          || '';
         const nome = msg.pushName || from.replace('@s.whatsapp.net', '');
-        try { await dispararParaN8N('whatsapp', from.replace('@s.whatsapp.net', ''), nome, text); } catch(e) {}
+        const numero = from.replace('@s.whatsapp.net', '');
+        const wamid = msg.key.id || ('baileys-' + Date.now());
+        // Salvar no banco
+        try {
+          db.prepare(`INSERT OR IGNORE INTO wpp_mensagens (wamid,de,nome,texto,tipo,direcao,conta_id,lido,criado_em)
+            VALUES (?,?,?,?,'text','recebida','baileys',0,datetime('now','localtime'))`)
+            .run(wamid, numero, nome, text || '[mídia]');
+        } catch(e) {}
+        if (text) {
+          try { await dispararParaN8N('whatsapp', numero, nome, text); } catch(e) {}
+        }
       });
     });
 
@@ -2475,9 +2488,44 @@ app.post('/api/wpp-qr/send', auth, async (req, res) => {
   if (!numero || !mensagem) return res.status(400).json({ error: 'numero e mensagem obrigatorios' });
   if (_wppStatus !== 'connected' || !_wppSock) return res.status(503).json({ error: 'WhatsApp não conectado' });
   try {
-    const jid = numero.replace(/\D/g,'') + '@s.whatsapp.net';
+    const num = numero.replace(/\D/g,'');
+    const jid = num + '@s.whatsapp.net';
     await _wppSock.sendMessage(jid, { text: mensagem });
+    // Salvar mensagem enviada no banco
+    try {
+      db.prepare(`INSERT INTO wpp_mensagens (wamid,de,nome,texto,tipo,direcao,conta_id,lido,criado_em)
+        VALUES (?,?,?,?,'text','enviada','baileys',1,datetime('now','localtime'))`)
+        .run('sent-' + Date.now(), num, 'Eu', mensagem);
+    } catch(e) {}
     res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/wpp-qr/conversations — Lista conversas do WhatsApp QR (Baileys)
+app.get('/api/wpp-qr/conversations', auth, (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT de,
+             MAX(CASE WHEN direcao='recebida' THEN nome ELSE NULL END) as nome,
+             MAX(criado_em) as ultima,
+             SUM(CASE WHEN lido=0 AND direcao='recebida' THEN 1 ELSE 0 END) as nao_lidas,
+             (SELECT texto FROM wpp_mensagens m2 WHERE m2.de=m.de AND m2.conta_id='baileys' ORDER BY m2.criado_em DESC LIMIT 1) as ultima_msg
+      FROM wpp_mensagens m
+      WHERE conta_id='baileys'
+      GROUP BY de
+      ORDER BY ultima DESC
+    `).all();
+    res.json(rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/wpp-qr/messages/:numero — Mensagens de uma conversa Baileys
+app.get('/api/wpp-qr/messages/:numero', auth, (req, res) => {
+  try {
+    const num = req.params.numero.replace(/\D/g,'');
+    const msgs = db.prepare(`SELECT * FROM wpp_mensagens WHERE de=? AND conta_id='baileys' ORDER BY criado_em ASC`).all(num);
+    db.prepare(`UPDATE wpp_mensagens SET lido=1 WHERE de=? AND conta_id='baileys' AND direcao='recebida'`).run(num);
+    res.json(msgs);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
