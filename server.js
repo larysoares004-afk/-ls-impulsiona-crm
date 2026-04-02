@@ -2317,12 +2317,6 @@ setInterval(() => {
 
 }, 60 * 60 * 1000); // 1 hora
 
-// ── Catch-all: serve index.html para rotas do frontend ───────────────────────
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // ════════════════════════════════════════════════════════════════════════════════
 // WHATSAPP QR — Baileys (gratuito, sem API paga)
 // ════════════════════════════════════════════════════════════════════════════════
@@ -2558,6 +2552,12 @@ app.post('/api/wpp-qr/send-video', auth, async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Catch-all: serve index.html para rotas do frontend ───────────────────────
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ── Iniciar servidor ──────────────────────────────────────────────────────────
