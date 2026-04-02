@@ -4229,6 +4229,8 @@ async function openChatBaileys(phone, nome) {
     </div>
     <div class="msgs" id="msgBox" style="flex:1;overflow-y:auto;padding:12px"></div>
     <div class="msg-inp-row">
+      <input type="file" id="baileysFileInput" accept="image/*,audio/*,video/*" style="display:none" onchange="_enviarMidiaBaileys(this.files[0])">
+      <button class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px" onclick="document.getElementById('baileysFileInput').click()" title="Enviar foto/áudio/vídeo">📎</button>
       <input type="text" class="msg-inp" id="msgInput" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send-btn" onclick="sendMsg()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -4253,16 +4255,52 @@ async function _carregarMsgsBaileys(num) {
     const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     box.innerHTML = msgs.map(m => {
       const out = m.direcao === 'enviada';
+      const bg  = out ? '#dcf8c6' : '#fff';
+      const br  = out ? '14px 14px 4px 14px' : '14px 14px 14px 4px';
+
+      let conteudo = '';
+      if (m.tipo === 'image' && m.url) {
+        conteudo = `<img src="${m.url}" style="max-width:220px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.url}','_blank')" onerror="this.style.display='none'">`;
+        if (m.texto) conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
+      } else if (m.tipo === 'audio' && m.url) {
+        conteudo = `<audio controls style="max-width:220px;height:36px"><source src="${m.url}"></audio>`;
+      } else if (m.tipo === 'video' && m.url) {
+        conteudo = `<video controls style="max-width:220px;border-radius:8px"><source src="${m.url}"></video>`;
+        if (m.texto) conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
+      } else if (m.tipo === 'document' && m.url) {
+        conteudo = `<a href="${m.url}" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none">📎 ${escHtml(m.texto||'Documento')}</a>`;
+      } else {
+        conteudo = `<div style="font-size:13px;white-space:pre-wrap">${escHtml(m.texto||'')}</div>`;
+      }
+
       return `<div style="display:flex;justify-content:${out?'flex-end':'flex-start'};margin-bottom:8px">
-        <div style="max-width:75%;padding:8px 12px;border-radius:${out?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${out?'#dcf8c6':'#fff'};border:1px solid ${out?'#b7e196':'#e2e8f0'};font-size:13px;color:#1e293b;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,.06)">
+        <div style="max-width:75%;padding:8px 12px;border-radius:${br};background:${bg};border:1px solid ${out?'#b7e196':'#e2e8f0'};font-size:13px;color:#1e293b;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,.06)">
           ${out?'':(`<div style="font-size:10px;font-weight:700;color:#2563eb;margin-bottom:3px">${escHtml(m.nome||'Cliente')}</div>`)}
-          <div>${escHtml(m.texto||'')}</div>
-          <div style="font-size:9px;color:#94a3b8;text-align:right;margin-top:3px">${(m.criado_em||'').slice(11,16)}</div>
+          ${conteudo}
+          <div style="font-size:9px;color:#94a3b8;text-align:right;margin-top:4px">${(m.criado_em||'').slice(11,16)}</div>
         </div>
       </div>`;
     }).join('') || '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:24px">Nenhuma mensagem ainda</div>';
     if (atBottom) box.scrollTop = box.scrollHeight;
   } catch(e) {}
+}
+
+async function _enviarMidiaBaileys(file) {
+  if (!file) return;
+  const num = uiState.baileysChatNum;
+  if (!num) return;
+  const fileInput = document.getElementById('baileysFileInput');
+  if (fileInput) fileInput.value = '';
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  fd.append('numero', num);
+  fd.append('caption', '');
+  try {
+    const r = await fetch('/api/wpp-qr/send-media', { method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: fd });
+    if (!r.ok) { const e = await r.json().catch(()=>({error:'Erro'})); showToast('❌ ' + (e.error||'Erro ao enviar mídia'), 'error'); return; }
+    showToast('✅ Mídia enviada!', 'success');
+    await _carregarMsgsBaileys(num);
+  } catch(e) { showToast('❌ Erro: ' + e.message, 'error'); }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════

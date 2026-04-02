@@ -203,6 +203,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS wpp_mensagens (
   criado_em   TEXT DEFAULT (datetime('now','localtime'))
 )`);
 try { db.exec("ALTER TABLE wpp_mensagens ADD COLUMN conta_id TEXT"); } catch(e) {}
+try { db.exec("ALTER TABLE wpp_mensagens ADD COLUMN url TEXT"); } catch(e) {}
 
 // Tabela de transferências de conversas
 db.exec(`CREATE TABLE IF NOT EXISTS wpp_transferencias (
@@ -2413,20 +2414,45 @@ async function iniciarBaileys() {
         if (msg.key.fromMe) return;
         const from = msg.key.remoteJid || '';
         if (from.endsWith('@g.us') || from.endsWith('@broadcast')) return;
-        const text = msg.message?.conversation
-          || msg.message?.extendedTextMessage?.text
-          || msg.message?.imageMessage?.caption
-          || msg.message?.videoMessage?.caption
-          || '';
-        const nome = msg.pushName || from.replace('@s.whatsapp.net', '');
+
+        const nome   = msg.pushName || from.replace('@s.whatsapp.net', '');
         const numero = from.replace('@s.whatsapp.net', '');
-        const wamid = msg.key.id || ('baileys-' + Date.now());
+        const wamid  = msg.key.id || ('baileys-' + Date.now());
+
+        // Detectar tipo de mensagem
+        const imgMsg   = msg.message?.imageMessage;
+        const audioMsg = msg.message?.audioMessage;
+        const vidMsg   = msg.message?.videoMessage;
+        const text     = msg.message?.conversation
+          || msg.message?.extendedTextMessage?.text
+          || imgMsg?.caption || vidMsg?.caption || '';
+
+        let tipo = 'text';
+        let mediaUrl = null;
+
+        // Download automático de mídia
+        if (imgMsg || audioMsg || vidMsg) {
+          try {
+            const { downloadMediaMessage } = await import('@whiskeysockets/baileys');
+            const buffer = await downloadMediaMessage(msg, 'buffer', {});
+            const ext    = imgMsg ? 'jpg' : audioMsg ? 'ogg' : 'mp4';
+            tipo         = imgMsg ? 'image' : audioMsg ? 'audio' : 'video';
+            const fname  = `baileys_${Date.now()}_${numero}.${ext}`;
+            const fpath  = path.join(UPLOAD_DIR, fname);
+            fs.writeFileSync(fpath, buffer);
+            mediaUrl = '/uploads/' + fname;
+          } catch(e) {
+            console.error('Erro ao baixar mídia Baileys:', e.message);
+          }
+        }
+
         // Salvar no banco
         try {
-          db.prepare(`INSERT OR IGNORE INTO wpp_mensagens (wamid,de,nome,texto,tipo,direcao,conta_id,lido,criado_em)
-            VALUES (?,?,?,?,'text','recebida','baileys',0,datetime('now','localtime'))`)
-            .run(wamid, numero, nome, text || '[mídia]');
+          db.prepare(`INSERT OR IGNORE INTO wpp_mensagens (wamid,de,nome,texto,tipo,url,direcao,conta_id,lido,criado_em)
+            VALUES (?,?,?,?,?,?,'recebida','baileys',0,datetime('now','localtime'))`)
+            .run(wamid, numero, nome, text || (mediaUrl ? '' : '[mensagem]'), tipo, mediaUrl);
         } catch(e) {}
+
         if (text) {
           try { await dispararParaN8N('whatsapp', numero, nome, text); } catch(e) {}
         }
@@ -2520,6 +2546,45 @@ app.get('/api/wpp-qr/messages/:numero', auth, (req, res) => {
     const msgs = db.prepare(`SELECT * FROM wpp_mensagens WHERE de=? AND conta_id='baileys' ORDER BY criado_em ASC`).all(num);
     db.prepare(`UPDATE wpp_mensagens SET lido=1 WHERE de=? AND conta_id='baileys' AND direcao='recebida'`).run(num);
     res.json(msgs);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/wpp-qr/send-media — Enviar imagem ou áudio via Baileys
+app.post('/api/wpp-qr/send-media', auth, (req, res, next) => {
+  if (!upload) return res.status(501).json({ error: 'Upload não disponível' });
+  upload.single('arquivo')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    next();
+  });
+}, async (req, res) => {
+  if (_wppStatus !== 'connected' || !_wppSock) return res.status(503).json({ error: 'WhatsApp não conectado' });
+  const { numero } = req.body;
+  if (!numero || !req.file) return res.status(400).json({ error: 'numero e arquivo obrigatórios' });
+  try {
+    const num    = numero.replace(/\D/g,'');
+    const jid    = num + '@s.whatsapp.net';
+    const mime   = req.file.mimetype || '';
+    const buffer = fs.readFileSync(req.file.path);
+    const url    = '/uploads/' + req.file.filename;
+
+    let msgPayload;
+    if (mime.startsWith('image/')) {
+      msgPayload = { image: buffer, caption: req.body.caption || '' };
+    } else if (mime.startsWith('audio/')) {
+      msgPayload = { audio: buffer, mimetype: 'audio/ogg; codecs=opus', ptt: true };
+    } else {
+      msgPayload = { document: buffer, mimetype: mime, fileName: req.file.originalname };
+    }
+
+    await _wppSock.sendMessage(jid, msgPayload);
+
+    // Salvar no banco
+    const tipo = mime.startsWith('image/') ? 'image' : mime.startsWith('audio/') ? 'audio' : 'document';
+    db.prepare(`INSERT INTO wpp_mensagens (wamid,de,nome,texto,tipo,url,direcao,conta_id,lido,criado_em)
+      VALUES (?,?,?,?,?,?,'enviada','baileys',1,datetime('now','localtime'))`)
+      .run('sent-media-' + Date.now(), num, 'Eu', req.body.caption || '', tipo, url);
+
+    res.json({ ok: true, url });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
