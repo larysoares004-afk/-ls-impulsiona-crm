@@ -1545,6 +1545,90 @@ app.get('/api/health', (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
+// SCRIPT DE VENDAS — IA sugere resposta para o vendedor
+// ════════════════════════════════════════════════════════════════════════════════
+app.post('/api/script/sugerir', auth, async (req, res) => {
+  try {
+    const { mensagem, nome, historico } = req.body;
+    if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatória' });
+
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (!ANTHROPIC_KEY) {
+      // Fallback inteligente por palavras-chave quando não há chave da API
+      const msg = mensagem.toLowerCase();
+      let resposta = '';
+      if (msg.includes('caro') || msg.includes('prec') || msg.includes('valor') || msg.includes('desconto')) {
+        resposta = `${nome ? nome + ', e' : 'E'}ntendo seu ponto, mas deixa eu te fazer uma pergunta melhor: quanto custa para você hoje não ter clientes chegando de forma previsível?\n\nUm funcionário de vendas tem CLT, encargos, treinamento — passa de R$ 2.500 facilmente. Por R$ 799,90 você tem equipe, estratégia, criação e otimização diária.\n\nO que é mais caro: investir R$ 799,90 ou continuar sem resultado?`;
+      } else if (msg.includes('não funcio') || msg.includes('tentei') || msg.includes('não deu') || msg.includes('nao funcionou')) {
+        resposta = `${nome ? nome + ', i' : 'I'}sso é mais comum do que você imagina — e é um sinal de que você trabalhou com alguém que não tinha método.\n\nMe conta uma coisa: quando você tentou antes, tinha uma copy persuasiva no anúncio direcionada para a dor do seu cliente ideal? Ou era um anúncio genérico tipo "conheça nosso trabalho"?\n\nÉ exatamente aí que a diferença está. A gente não roda anúncio — a gente constrói um sistema de captação.`;
+      } else if (msg.includes('tempo') || msg.includes('ocupad')) {
+        resposta = `${nome ? nome + ', é' : 'É'} exatamente por isso que você precisa da LS Impulsiona.\n\nA gente foi feita para donos de negócio que não têm tempo — e não deveriam ter. O seu tempo tem que estar no que você faz de melhor.\n\nNós cuidamos de tudo: criação dos anúncios, textos, segmentação, testes, relatório. A única coisa que você vai precisar fazer é atender os leads que vão chegar no seu WhatsApp.`;
+      } else if (msg.includes('pensar') || msg.includes('sócio') || msg.includes('socio') || msg.includes('esposa') || msg.includes('marido')) {
+        resposta = `Claro, ${nome || '[Nome]'} — decisão de investimento merece atenção.\n\nSó quero te ajudar a ter a conversa certa. Qual é a principal dúvida que provavelmente vai surgir? Assim eu já te passo os dados que você vai precisar.\n\nSó te aviso que o plano de R$ 799,90 tem vagas limitadas por semana — trabalho com quantidade controlada justamente para manter a qualidade. Não quero te perder por isso.\n\nAté quando você consegue dar uma resposta?`;
+      } else if (msg.includes('garantia') || msg.includes('garante') || msg.includes('resultado')) {
+        resposta = `${nome ? nome + ', v' : 'V'}ou ser honesto: nenhuma agência séria garante número de vendas — porque isso depende do seu produto, preço e atendimento também.\n\nO que a LS Impulsiona garante é: estratégia profissional, criação de qualidade, otimização contínua e transparência total — você vê tudo o que está acontecendo com o seu dinheiro.\n\nIsso te dá segurança suficiente para dar o próximo passo?`;
+      } else if (msg.includes('incluso') || msg.includes('inclui') || msg.includes('anúncio') || msg.includes('anuncio')) {
+        resposta = `Boa pergunta, ${nome || '[Nome]'} — fico feliz que você perguntou isso.\n\nNão está incluso, e vou te explicar por quê isso é uma coisa boa.\n\nO investimento em anúncios vai direto para o Meta ou Google — sem intermediários, sem margem nossa em cima. Você tem controle total do quanto quer investir.\n\nOs R$ 799,90 são a nossa taxa de gestão e estratégia. Dito isso, qual é o valor que você pensava em investir por mês em anúncios?`;
+      } else {
+        resposta = `Entendo, ${nome || '[Nome]'}! Me conta um pouco mais sobre isso — o que exatamente está te impedindo de dar o próximo passo agora?\n\nAssim consigo te ajudar da forma mais certeira possível.`;
+      }
+      return res.json({ resposta, via: 'fallback' });
+    }
+
+    // Usar Claude API
+    const sistemPrompt = `Você é um especialista em vendas da LS Impulsiona, empresa de gestão de tráfego pago que vende planos por R$ 799,90/mês.
+
+CONTEXTO DO PRODUTO:
+- Gestão completa de tráfego pago (Meta/Google Ads)
+- R$ 799,90/mês de taxa de gestão (investimento em anúncios é à parte, vai direto para a plataforma)
+- Equipe especializada: criação de anúncios, copywriting persuasivo, segmentação, otimização diária, relatórios
+- São R$ 26/dia — se trouxer um único cliente já se paga
+
+REGRAS DE RESPOSTA:
+- Seja direto, persuasivo e empático
+- Use o nome do cliente se disponível (substitua [Nome])
+- Termine sempre com uma pergunta para manter o controle da conversa
+- Trate objeções com ancoragem de valor, não com desconto
+- Máximo 4 parágrafos curtos
+- Nunca dê desconto no valor de gestão
+- Use linguagem natural brasileira, não formal demais`;
+
+    const messages = [];
+    if (historico && Array.isArray(historico)) {
+      historico.slice(-10).forEach(h => {
+        messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
+      });
+    }
+    const userContent = nome
+      ? `O cliente ${nome} disse: "${mensagem}"\n\nQual é a melhor resposta para converter essa venda?`
+      : `O cliente disse: "${mensagem}"\n\nQual é a melhor resposta para converter essa venda?`;
+    messages.push({ role: 'user', content: userContent });
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: sistemPrompt,
+        messages
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'Erro na API Anthropic');
+    const resposta = data.content?.[0]?.text || 'Não foi possível gerar resposta.';
+    res.json({ resposta, via: 'claude' });
+  } catch(e) {
+    console.error('❌ Erro script/sugerir:', e.message);
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════════
 // ESTATÍSTICAS RÁPIDAS (sem auth — para dashboard público)
 // ════════════════════════════════════════════════════════════════════════════════
 app.get('/api/stats', auth, (req, res) => {

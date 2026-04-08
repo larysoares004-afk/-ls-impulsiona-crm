@@ -716,6 +716,10 @@ select.inp{cursor:pointer}
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 10.26 24 10.26 17.55 16.74 19.64 25 12 19.5 4.36 25 6.45 16.74 0 10.26 8.91 10.26 12 2"/></svg>
       <span>Ranking</span>
     </button>
+    <button class="nb" onclick="goTo('script')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="11" y2="13"/></svg>
+      <span>Script de Vendas</span>
+    </button>
     <button class="nb" onclick="goTo('config')">
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>Configurações</span>
@@ -1302,6 +1306,11 @@ select.inp{cursor:pointer}
   <div id="rankingContent"></div>
 </div>
 
+<!-- ═══════════════════════ SCRIPT DE VENDAS ═══════════════════════ -->
+<div class="view" id="view-script">
+  <div id="scriptContent"></div>
+</div>
+
 <!-- ═══════════════════════ CONFIGURAÇÕES ═══════════════════════ -->
 <div class="view" id="view-config">
   <div style="max-width:900px;margin:0 auto">
@@ -1601,17 +1610,17 @@ select.inp{cursor:pointer}
 
 const PERMISSOES = {
   // Admin — acesso total
-  admin:    ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  admin:    ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
   // Gestor — acesso total igual ao admin
-  gestor:   ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gestor:   ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
   // Gerente — tudo menos faturamento
-  gerente:  ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gerente:  ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
   // Atendente — acesso operacional
-  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
   // Vendedor — acesso comercial + ranking
-  vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
   // Colaborador — acesso básico
-  colaborador:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  colaborador:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking','script'],
 };
 
 let currentUser = null;
@@ -2417,6 +2426,7 @@ function _goToSemHistorico(tab) {
   if(tab==='atendimentos') { renderAttList(); _iniciarPollAtendimentos(); }
   if(tab==='config')       { _pararPollAtendimentos(); renderConfig(); }
   if(tab==='novo')         { _pararPollAtendimentos(); initNovo(); }
+  if(tab==='script')       renderScript();
 }
 
 function goTo(tab) {
@@ -2467,6 +2477,7 @@ function goTo(tab) {
   if (tab==='indicacoes')      renderIndicacoes();
   if (tab==='ranking')         renderRanking();
   if (tab==='novo')         { _pararPollAtendimentos(); initNovo(); }
+  if (tab==='script')          renderScript();
   // Scroll para o topo
   document.querySelector('.cnt')?.scrollTo(0, 0);
   // Atualizar visibilidade do botão Voltar
@@ -7313,6 +7324,322 @@ function renderWppComQR() {
     } else { devtools.open = false; }
   }, 5000);
 })();
+
+// ══════════════════════════════════════════════════════════════════
+// SCRIPT DE VENDAS — Assistente de Conversão LS Impulsiona
+// ══════════════════════════════════════════════════════════════════
+var _scriptIA_historico = []; // histórico de conversa da IA
+
+var SCRIPT_PLAYBOOK = {
+  categorias: [
+    {
+      id: 'abordagem', label: 'Abordagem Inicial', icon: '👋',
+      itens: [
+        {
+          titulo: 'Variação A — Consultor de Diagnóstico',
+          texto: 'Oi, [Nome]! Tudo certo?\n\nAqui é o [Seu Nome] da LS Impulsiona. Vi que você tem interesse em tráfego pago — ótima decisão.\n\nAntes de te passar qualquer proposta, quero entender o seu cenário real. Me conta: qual é o seu negócio hoje e qual é a sua maior dor agora — falta de visibilidade ou falta de clientes chegando até você?'
+        },
+        {
+          titulo: 'Variação B — Quebra de Padrão (Curiosidade)',
+          texto: 'Oi, [Nome]!\n\nAqui é o [Seu Nome] da LS Impulsiona. Acabei de ver sua solicitação.\n\nOlhei rapidamente o seu perfil e já identifiquei pelo menos 3 oportunidades que você está deixando dinheiro na mesa agora mesmo.\n\nPosso te mandar um áudio de 1 minuto explicando o que eu vi?'
+        }
+      ]
+    },
+    {
+      id: 'pitch', label: 'Pitch (Áudio de Conversão)', icon: '🎙️',
+      itens: [
+        {
+          titulo: 'Script do Áudio — 60 segundos',
+          texto: '[Nome], vou ser direto com você porque respeito o seu tempo.\n\nO que a gente faz aqui na LS Impulsiona não é simplesmente \'rodar anúncio\'. Qualquer pessoa consegue apertar o botão de impulsionar. O que a gente entrega é diferente.\n\nPor R$ 799,90 por mês, você contrata uma equipe especializada que vai criar anúncios com copywriting persuasivo — aquela comunicação que realmente faz o cliente sentir que precisa do que você oferece —, segmentar exatamente para o perfil de pessoa que tem o problema que você resolve, e otimizar as campanhas todo dia para que cada centavo que você investir em anúncio gere o máximo de retorno.\n\nSão R$ 26 por dia. Se esse sistema te trouxer um único cliente, já se pagou na hora.\n\nA questão que eu preciso que você me responda honestamente é essa: você quer continuar dependendo de indicação e da sorte, ou está pronto para ter um sistema previsível de clientes chegando até você?'
+        }
+      ]
+    },
+    {
+      id: 'objecoes', label: 'Objeções', icon: '🛡️',
+      itens: [
+        {
+          titulo: 'O valor dos anúncios já está incluso?',
+          texto: 'Boa pergunta, [Nome] — fico feliz que você perguntou isso.\n\nNão está incluso, e vou te explicar por quê isso é uma coisa boa.\n\nO investimento em anúncios vai direto para o Meta ou Google — sem intermediários, sem margem nossa em cima. Você tem controle total do quanto quer investir.\n\nOs R$ 799,90 são a nossa taxa de gestão e estratégia. É o que garante que esse dinheiro de anúncio não vai ser jogado fora. Empresa séria cobra separado justamente porque não tem interesse escondido no seu orçamento de mídia.\n\nDito isso, qual é o valor que você pensava em investir por mês em anúncios?'
+        },
+        {
+          titulo: 'Achei caro / está muito caro',
+          texto: 'Entendo, [Nome]. E eu poderia simplesmente te dizer "é barato pelo que entrega" — mas isso seria papo de vendedor.\n\nDeixa eu te fazer uma pergunta melhor: quanto custa para você hoje não ter clientes chegando de forma previsível?\n\nUm funcionário de vendas tem CLT, encargos, treinamento — passa de R$ 2.500 facilmente. Um freelancer de tráfego bom cobra entre R$ 800 e R$ 2.000 sem nenhuma garantia de resultado.\n\nPor R$ 799,90 você tem equipe, estratégia, criação e otimização diária. E se em 30 dias você não sentir diferença, a gente conversa.\n\nO que é mais caro: investir R$ 799,90 ou continuar sem resultado?'
+        },
+        {
+          titulo: 'Não tenho tempo para acompanhar',
+          texto: '[Nome], isso é exatamente por que você precisa da LS Impulsiona.\n\nA gente foi construída para donos de negócio que não têm tempo — e não deveriam ter. O seu tempo tem que estar no que você faz de melhor.\n\nNós cuidamos de tudo: criação dos anúncios, textos, segmentação, testes, relatório. A única coisa que você vai precisar fazer é atender os leads que vão chegar no seu WhatsApp.\n\nFaz sentido isso para você?'
+        },
+        {
+          titulo: 'Já tentei tráfego antes e não funcionou',
+          texto: '[Nome], isso é mais comum do que você imagina — e é um sinal de que você trabalhou com alguém que não tinha método.\n\nTráfego sem estratégia é queimar dinheiro. É como contratar um vendedor que não conhece o produto.\n\nMe conta uma coisa: quando você tentou antes, tinha uma copy (texto persuasivo) no anúncio direcionada para a dor do seu cliente ideal? Ou era um anúncio genérico tipo "conheça nosso trabalho"?\n\n[Aguarda resposta]\n\nExatamente. É aí que a diferença está. A gente não roda anúncio — a gente constrói um sistema de captação. Quer ver como seria para o seu nicho especificamente?'
+        },
+        {
+          titulo: 'Meu negócio é diferente, não sei se funciona',
+          texto: '[Nome], todo cliente que veio até nós pensou isso antes de fechar.\n\nO comportamento humano na internet é universal: as pessoas buscam solução para uma dor. Não importa se é estética, advocacia, pet shop ou consultoria — tem gente procurando o que você oferece agora mesmo.\n\nO que muda é a linguagem, o público e o posicionamento — e é exatamente isso que a gente personaliza para você.\n\nMe conta mais sobre o seu negócio: quem é o cliente ideal que você quer atrair?'
+        },
+        {
+          titulo: 'Preciso pensar / consultar sócio',
+          texto: 'Claro, [Nome] — decisão de investimento merece atenção.\n\nSó quero te ajudar a ter a conversa certa com seu sócio. Qual é a principal dúvida que ele provavelmente vai ter? Assim eu já te passo os dados que ele vai precisar.\n\nSó te aviso que o plano de R$ 799,90 tem vagas limitadas por semana — trabalhamos com quantidade controlada justamente para manter a qualidade. Não quero te perder por isso.\n\nAté quando você consegue dar uma resposta?'
+        },
+        {
+          titulo: 'Vocês têm garantia?',
+          texto: '[Nome], vou ser honesto com você: nenhuma agência séria garante número de vendas — porque isso depende do seu produto, do seu preço e do seu atendimento também.\n\nO que a LS Impulsiona garante é: estratégia profissional, criação de qualidade, otimização contínua e transparência total — você vê tudo o que está acontecendo com o seu dinheiro.\n\nE se em 30 dias você sentir que não houve empenho da nossa parte, a gente conversa sobre os próximos passos. A nossa reputação vale mais do que uma mensalidade.\n\nIsso te dá segurança suficiente para dar o próximo passo?'
+        }
+      ]
+    },
+    {
+      id: 'followup', label: 'Follow-ups', icon: '🔁',
+      itens: [
+        {
+          titulo: 'Follow-up 1 — 4h (Prova Social)',
+          texto: 'Oi, [Nome]! Tudo bem?\n\nEstava aqui finalizando a campanha de um cliente do [nicho parecido] que entrou hoje — e lembrei que a gente ainda não fechou seu projeto.\n\n[Enviar print de resultados ou WhatsApp cheio de leads]\n\nIsso aí foi gerado em poucas horas para ele. Fica o registro.\n\nVocê ainda tem interesse em estruturar isso para o seu negócio?'
+        },
+        {
+          titulo: 'Follow-up 2 — 24h (Escassez)',
+          texto: '[Nome], passando para ser transparente com você.\n\nA LS Impulsiona trabalha com um número limitado de novos clientes por semana — é assim que a gente mantém a qualidade que entrega.\n\nTenho uma vaga disponível para o cronograma dessa semana. Se você fechar até amanhã, já entramos em produção nos próximos dias.\n\nSe preferir esperar, sem problema — mas a próxima vaga só abre na semana que vem (e o valor pode ter ajuste).\n\nBora garantir a sua?'
+        },
+        {
+          titulo: 'Follow-up 3 — 48h (Gatilho da Perda)',
+          texto: 'Oi, [Nome].\n\nImagino que o momento de escalar sua empresa ainda não chegou — e tudo bem, cada um tem seu tempo.\n\nVou encerrar seu atendimento aqui no sistema para focar nos clientes que estão prontos para avançar agora.\n\nSe um dia decidir profissionalizar sua captação de clientes, é só me chamar. Vou ter prazer em retomar — mesmo que o investimento já tenha aumentado até lá.\n\nSucesso na sua jornada, [Nome].'
+        }
+      ]
+    },
+    {
+      id: 'fechamento', label: 'Fechamento', icon: '✅',
+      itens: [
+        {
+          titulo: 'Script de Fechamento',
+          texto: 'Perfeito, [Nome]! Você está fazendo a escolha certa.\n\nVai ser assim: vou te mandar agora o link de pagamento da primeira mensalidade (R$ 799,90). Assim que confirmar, te mando um briefing rápido — são umas 3 minutinhos só para a gente entender seu negócio a fundo. Aí amanhã mesmo nossa equipe de criação entra em contato para já começar.\n\nVocê prefere pagar no cartão de crédito (parcelamos em até 3x) ou prefere Pix à vista?'
+        }
+      ]
+    }
+  ]
+};
+
+function renderScript() {
+  var el = document.getElementById('scriptContent');
+  if (!el) return;
+
+  el.innerHTML = `
+<div style="max-width:1200px;margin:0 auto;padding:0">
+  <div style="margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div class="ptitle">Script de Vendas</div>
+      <div class="psub">Assistente de conversão LS Impulsiona — R$ 799,90</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:11px;color:var(--z400);background:var(--z100);padding:4px 10px;border-radius:20px">Ticket: R$ 799,90/mês</span>
+      <button onclick="_scriptLimparHistorico()" style="padding:6px 14px;background:var(--z100);border:1px solid var(--z200);border-radius:8px;font-size:12px;font-weight:600;color:var(--z600);cursor:pointer">Limpar histórico</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- PAINEL ESQUERDO: Scripts prontos -->
+    <div style="width:340px;flex-shrink:0" id="scriptPainelEsq">
+      <div style="background:#fff;border:1px solid var(--z200);border-radius:14px;overflow:hidden">
+        <div style="padding:14px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff">
+          <div style="font-size:13px;font-weight:700">Scripts Prontos</div>
+          <div style="font-size:11px;opacity:.8;margin-top:2px">Clique para copiar e usar</div>
+        </div>
+        <div style="padding:10px" id="scriptCategorias"></div>
+      </div>
+    </div>
+
+    <!-- PAINEL DIREITO: IA Sugere -->
+    <div style="flex:1;min-width:280px">
+      <!-- IA Box -->
+      <div style="background:#fff;border:1px solid var(--z200);border-radius:14px;overflow:hidden;margin-bottom:16px">
+        <div style="padding:14px 16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;display:flex;align-items:center;gap:10px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div>
+            <div style="font-size:13px;font-weight:700">IA Sugere — O que responder?</div>
+            <div style="font-size:11px;opacity:.8">Cole o que o cliente disse e receba a resposta ideal</div>
+          </div>
+        </div>
+        <div style="padding:16px">
+          <div style="margin-bottom:10px">
+            <label style="font-size:11px;font-weight:600;color:var(--z500);text-transform:uppercase;letter-spacing:.5px">O que o cliente disse:</label>
+            <textarea id="scriptClienteMsg" placeholder="Ex: Achei o valor muito caro, tem como dar desconto?" style="width:100%;margin-top:6px;padding:10px 12px;border:1px solid var(--z200);border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:80px;outline:none;transition:border .2s" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='var(--z200)'"></textarea>
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:11px;font-weight:600;color:var(--z500);text-transform:uppercase;letter-spacing:.5px">Nome do cliente (opcional):</label>
+            <input id="scriptClienteNome" type="text" placeholder="Ex: João" style="width:100%;margin-top:6px;padding:8px 12px;border:1px solid var(--z200);border-radius:8px;font-size:13px;font-family:inherit;outline:none;transition:border .2s" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='var(--z200)'">
+          </div>
+          <button onclick="_scriptSugerirResposta()" id="btnScriptSugerir" style="width:100%;padding:11px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Sugerir resposta com IA
+          </button>
+
+          <!-- Resultado da IA -->
+          <div id="scriptIAResultado" style="display:none;margin-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px">Resposta sugerida:</span>
+              <button onclick="_scriptCopiarResposta()" style="padding:4px 10px;background:#f3f0ff;border:1px solid #c4b5fd;border-radius:6px;font-size:11px;font-weight:600;color:#7c3aed;cursor:pointer">Copiar</button>
+            </div>
+            <div id="scriptIATexto" style="background:#f9f7ff;border:1px solid #e9d5ff;border-radius:10px;padding:12px;font-size:13px;line-height:1.65;color:var(--z800);white-space:pre-wrap;word-break:break-word"></div>
+          </div>
+
+          <!-- Loading -->
+          <div id="scriptIALoading" style="display:none;margin-top:14px;text-align:center;padding:20px;color:#7c3aed;font-size:13px">
+            <div style="display:inline-block;width:20px;height:20px;border:2px solid #e9d5ff;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px"></div>
+            <div>Analisando e gerando resposta...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico da conversa -->
+      <div style="background:#fff;border:1px solid var(--z200);border-radius:14px;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--z100);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:700;color:var(--z800)">Histórico da conversa</div>
+          <span id="scriptHistCount" style="font-size:11px;color:var(--z400)">0 mensagens</span>
+        </div>
+        <div id="scriptHistorico" style="min-height:120px;max-height:340px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="text-align:center;color:var(--z300);font-size:12px;padding:24px 0">Nenhuma conversa ainda. Use a IA acima para começar.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>`;
+
+  _scriptRenderCategorias();
+}
+
+function _scriptRenderCategorias() {
+  var c = document.getElementById('scriptCategorias');
+  if (!c) return;
+  var html = '';
+  SCRIPT_PLAYBOOK.categorias.forEach(function(cat) {
+    html += '<div style="margin-bottom:4px">';
+    html += '<button onclick="_scriptToggleCat(\'' + cat.id + '\')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:none;border-radius:10px;background:var(--z50);cursor:pointer;font-size:12px;font-weight:700;color:var(--z700);font-family:inherit;transition:background .15s" onmouseover="this.style.background=\'var(--z100)\'" onmouseout="this.style.background=\'var(--z50)\'">';
+    html += '<span>' + cat.icon + ' ' + cat.label + '</span>';
+    html += '<svg id="scat-arr-' + cat.id + '" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>';
+    html += '</button>';
+    html += '<div id="scat-' + cat.id + '" style="display:none;padding:4px 0 6px 0">';
+    cat.itens.forEach(function(item, idx) {
+      html += '<div style="margin:3px 0;border:1px solid var(--z100);border-radius:10px;overflow:hidden">';
+      html += '<div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--z600);background:var(--z50);border-bottom:1px solid var(--z100)">' + item.titulo + '</div>';
+      html += '<div style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">';
+      html += '<div style="font-size:11px;color:var(--z500);line-height:1.4;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + item.texto.replace(/\n/g,' ').substring(0,80) + '...</div>';
+      html += '<button onclick="_scriptUsarItem(\'' + cat.id + '\',' + idx + ')" style="padding:5px 10px;background:#dbeafe;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;white-space:nowrap;flex-shrink:0">Usar</button>';
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  });
+  c.innerHTML = html;
+}
+
+function _scriptToggleCat(id) {
+  var el = document.getElementById('scat-' + id);
+  var arr = document.getElementById('scat-arr-' + id);
+  if (!el) return;
+  var aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if (arr) arr.style.transform = aberto ? '' : 'rotate(180deg)';
+}
+
+function _scriptUsarItem(catId, idx) {
+  var cat = SCRIPT_PLAYBOOK.categorias.find(function(c){ return c.id === catId; });
+  if (!cat || !cat.itens[idx]) return;
+  var texto = cat.itens[idx].texto;
+  var nome = (document.getElementById('scriptClienteNome') || {}).value || '';
+  if (nome) texto = texto.replace(/\[Nome\]/g, nome);
+  _scriptMostrarResultado(texto);
+  toast('Script copiado para a área de resultado!', 'success');
+}
+
+async function _scriptSugerirResposta() {
+  var msgEl = document.getElementById('scriptClienteMsg');
+  var nomeEl = document.getElementById('scriptClienteNome');
+  var msg = msgEl ? msgEl.value.trim() : '';
+  var nome = nomeEl ? nomeEl.value.trim() : '';
+  if (!msg) { toast('Digite o que o cliente disse primeiro.', 'error'); return; }
+
+  var btn = document.getElementById('btnScriptSugerir');
+  var loading = document.getElementById('scriptIALoading');
+  var resultado = document.getElementById('scriptIAResultado');
+  if (btn) btn.disabled = true;
+  if (loading) loading.style.display = 'block';
+  if (resultado) resultado.style.display = 'none';
+
+  try {
+    var r = await api('/script/sugerir', 'POST', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
+    var resposta = r.resposta || 'Não foi possível gerar resposta.';
+    _scriptMostrarResultado(resposta);
+    _scriptAdicionarHistorico('cliente', msg);
+    _scriptAdicionarHistorico('vendedor', resposta);
+    msgEl.value = '';
+  } catch(e) {
+    toast('Erro ao gerar resposta: ' + (e.message || 'tente novamente'), 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (loading) loading.style.display = 'none';
+  }
+}
+
+function _scriptMostrarResultado(texto) {
+  var el = document.getElementById('scriptIATexto');
+  var box = document.getElementById('scriptIAResultado');
+  if (el) el.textContent = texto;
+  if (box) box.style.display = 'block';
+  // guarda para copiar depois
+  window._scriptUltimaResposta = texto;
+}
+
+function _scriptCopiarResposta() {
+  var texto = window._scriptUltimaResposta || '';
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(function(){
+    toast('Resposta copiada!', 'success');
+  }).catch(function(){
+    var ta = document.createElement('textarea');
+    ta.value = texto; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Resposta copiada!', 'success');
+  });
+}
+
+function _scriptAdicionarHistorico(tipo, texto) {
+  _scriptIA_historico.push({ role: tipo === 'cliente' ? 'user' : 'assistant', content: texto });
+  if (_scriptIA_historico.length > 20) _scriptIA_historico = _scriptIA_historico.slice(-20);
+  _scriptRenderHistorico();
+}
+
+function _scriptRenderHistorico() {
+  var el = document.getElementById('scriptHistorico');
+  var cnt = document.getElementById('scriptHistCount');
+  if (!el) return;
+  if (_scriptIA_historico.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--z300);font-size:12px;padding:24px 0">Nenhuma conversa ainda. Use a IA acima para começar.</div>';
+    if (cnt) cnt.textContent = '0 mensagens';
+    return;
+  }
+  if (cnt) cnt.textContent = _scriptIA_historico.length + ' mensagens';
+  var html = '';
+  _scriptIA_historico.forEach(function(m) {
+    var isCliente = m.role === 'user';
+    html += '<div style="display:flex;' + (isCliente ? '' : 'flex-direction:row-reverse') + ';gap:8px;align-items:flex-end">';
+    html += '<div style="width:28px;height:28px;border-radius:50%;background:' + (isCliente ? '#fef3c7' : '#dbeafe') + ';display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">' + (isCliente ? '👤' : '🤝') + '</div>';
+    html += '<div style="max-width:80%;background:' + (isCliente ? '#fff' : '#eff6ff') + ';border:1px solid ' + (isCliente ? 'var(--z200)' : '#bfdbfe') + ';border-radius:' + (isCliente ? '12px 12px 12px 2px' : '12px 12px 2px 12px') + ';padding:8px 12px;font-size:12px;line-height:1.55;color:var(--z800);white-space:pre-wrap;word-break:break-word">' + _esc(m.content) + '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+}
+
+function _scriptLimparHistorico() {
+  _scriptIA_historico = [];
+  _scriptRenderHistorico();
+  var res = document.getElementById('scriptIAResultado');
+  if (res) res.style.display = 'none';
+  window._scriptUltimaResposta = '';
+  toast('Histórico limpo.', 'success');
+}
+
+function _esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 </script>
 
 <!-- Chart.js para gráficos -->
