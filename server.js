@@ -2619,10 +2619,14 @@ app.post('/api/wpp-qr/send-video', auth, async (req, res) => {
   }
 });
 
-// ── Site institucional LS International ──────────────────────────────────────
-app.get(['/institucional', '/institucional/'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'site', 'index.html'));
-});
+// ── Site institucional LS International (servir pasta inteira) ──────────────
+app.use('/site', express.static(path.join(__dirname, 'public', 'site'), {
+  maxAge: '1h',
+  etag: true,
+  setHeaders: (res, path) => {
+    if (path.endsWith('.html')) res.set('Cache-Control', 'no-cache');
+  }
+}));
 
 // ── Catch-all: serve index.html para rotas do frontend ───────────────────────
 app.get('*', (req, res) => {
