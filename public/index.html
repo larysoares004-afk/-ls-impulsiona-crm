@@ -7665,8 +7665,16 @@ async function _scriptSugerirResposta() {
   if (resultado) resultado.style.display = 'none';
 
   try {
-    var r = await api('POST', '/api/script/sugerir', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
-    var resposta = r.resposta || 'Não foi possível gerar resposta.';
+    var token = _getAuthToken();
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    var fetchRes = await fetch('/api/script/sugerir', {
+      method: 'POST', credentials: 'include', headers,
+      body: JSON.stringify({ mensagem: msg, nome: nome, historico: _scriptIA_historico })
+    });
+    var data = await fetchRes.json().catch(function(){ return {}; });
+    if (!fetchRes.ok) throw new Error(data.erro || data.error || 'Erro ' + fetchRes.status);
+    var resposta = data.resposta || 'Não foi possível gerar resposta.';
     _scriptMostrarResultado(resposta);
     _scriptAdicionarHistorico('cliente', msg);
     _scriptAdicionarHistorico('vendedor', resposta);
