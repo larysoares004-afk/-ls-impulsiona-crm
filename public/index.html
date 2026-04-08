@@ -7564,7 +7564,7 @@ async function _scriptSugerirResposta() {
   if (resultado) resultado.style.display = 'none';
 
   try {
-    var r = await api('/script/sugerir', 'POST', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
+    var r = await api('POST', '/script/sugerir', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
     var resposta = r.resposta || 'Não foi possível gerar resposta.';
     _scriptMostrarResultado(resposta);
     _scriptAdicionarHistorico('cliente', msg);
