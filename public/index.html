@@ -3957,6 +3957,9 @@ async function openChatMeta(de, nome) {
     <div id="transferInfo" style="padding:8px 12px;background:#f0f9ff;border-bottom:1px solid #e0e7ff;font-size:11px;display:none"></div>
     <div class="msgs" id="msgBox" style="flex:1;overflow-y:auto;padding:12px"></div>
     <div class="msg-inp-row">
+      <input type="file" id="metaFileInput" accept="image/*,audio/*,video/*,application/pdf" style="display:none" onchange="_enviarMidiaWppMeta(this.files[0])">
+      <button class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px;flex-shrink:0" onclick="document.getElementById('metaFileInput').click()" title="Enviar arquivo">📎</button>
+      <button id="btnGravarAudio" class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px;flex-shrink:0;transition:background .2s" onclick="_toggleGravacaoAudio('meta')" title="Gravar áudio">🎤</button>
       <input type="text" class="msg-inp" id="msgInput" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send-btn" onclick="sendMsg()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -4006,15 +4009,34 @@ function renderMsgsMeta(de, tipo='whatsapp') {
   box.innerHTML = msgsSorted.map(m => {
     const enviada = m.direcao === 'enviada';
     const hora = (m.criado_em||'').slice(11,16);
-    const nomeSender = m.nome || (enviada ? 'Você' : 'Cliente Instagram');
+    const nomeSender = m.nome || (enviada ? 'Você' : 'Cliente');
     const bgColor = isInstagram ? (enviada ? '#e0f2fe' : '#fff') : (enviada ? '#dcf8c6' : '#fff');
     const align = enviada ? 'flex-end' : 'flex-start';
     const borderRadius = enviada ? '12px 12px 2px 12px' : '12px 12px 12px 2px';
 
+    let conteudo = '';
+    if ((m.tipo === 'image' || m.tipo === 'sticker') && m.url) {
+      const sz = m.tipo === 'sticker' ? '120px' : '220px';
+      conteudo = `<img src="${m.url}" style="max-width:${sz};border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.url}','_blank')" onerror="this.parentElement.innerHTML='<span style=font-size:11px;color:#94a3b8>🖼 Imagem</span>'">`;
+      if (m.texto && m.tipo !== 'sticker') conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
+    } else if (m.tipo === 'audio' && m.url) {
+      conteudo = `<audio controls style="max-width:220px;height:36px"><source src="${m.url}"></audio>`;
+    } else if (m.tipo === 'video' && m.url) {
+      conteudo = `<video controls style="max-width:220px;border-radius:8px"><source src="${m.url}"></video>`;
+      if (m.texto) conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
+    } else if (m.tipo === 'document' && m.url) {
+      conteudo = `<a href="${m.url}" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none">📎 ${escHtml(m.texto||'Documento')}</a>`;
+    } else if ((m.tipo === 'image'||m.tipo==='audio'||m.tipo==='video'||m.tipo==='sticker') && !m.url) {
+      const icons = {image:'🖼',audio:'🎵',video:'🎬',sticker:'🩷'};
+      conteudo = `<span style="font-size:12px;color:#94a3b8">${icons[m.tipo]||'📎'} ${m.tipo.charAt(0).toUpperCase()+m.tipo.slice(1)} recebido</span>`;
+    } else {
+      conteudo = `<div style="font-size:13px;white-space:pre-wrap">${escHtml(m.texto||'')}</div>`;
+    }
+
     return `<div style="margin:4px 8px;display:flex;flex-direction:column;align-items:${align}">
       <div style="max-width:80%;background:${bgColor};border-radius:${borderRadius};padding:8px 12px;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,.1)">
         ${!enviada ? `<div style="font-weight:700;font-size:11px;color:#6366f1;margin-bottom:3px">${escHtml(nomeSender)}</div>` : ''}
-        <div>${escHtml(m.texto||'')}</div>
+        ${conteudo}
         <div style="font-size:9px;color:#94a3b8;margin-top:3px;text-align:right">${hora}</div>
       </div>
     </div>`;
@@ -4240,8 +4262,9 @@ async function openChatBaileys(phone, nome) {
     </div>
     <div class="msgs" id="msgBox" style="flex:1;overflow-y:auto;padding:12px"></div>
     <div class="msg-inp-row">
-      <input type="file" id="baileysFileInput" accept="image/*,audio/*,video/*" style="display:none" onchange="_enviarMidiaBaileys(this.files[0])">
-      <button class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px" onclick="document.getElementById('baileysFileInput').click()" title="Enviar foto/áudio/vídeo">📎</button>
+      <input type="file" id="baileysFileInput" accept="image/*,audio/*,video/*,application/pdf" style="display:none" onchange="_enviarMidiaBaileys(this.files[0])">
+      <button class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px;flex-shrink:0" onclick="document.getElementById('baileysFileInput').click()" title="Enviar arquivo">📎</button>
+      <button id="btnGravarAudio" class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px;flex-shrink:0;transition:background .2s" onclick="_toggleGravacaoAudio('baileys')" title="Gravar áudio">🎤</button>
       <input type="text" class="msg-inp" id="msgInput" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
       <button class="send-btn" onclick="sendMsg()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -4270,9 +4293,10 @@ async function _carregarMsgsBaileys(num) {
       const br  = out ? '14px 14px 4px 14px' : '14px 14px 14px 4px';
 
       let conteudo = '';
-      if (m.tipo === 'image' && m.url) {
-        conteudo = `<img src="${m.url}" style="max-width:220px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.url}','_blank')" onerror="this.style.display='none'">`;
-        if (m.texto) conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
+      if ((m.tipo === 'image' || m.tipo === 'sticker') && m.url) {
+        const sz = m.tipo === 'sticker' ? '120px' : '220px';
+        conteudo = `<img src="${m.url}" style="max-width:${sz};border-radius:${m.tipo==='sticker'?'4px':'8px'};display:block;cursor:pointer" onclick="window.open('${m.url}','_blank')" onerror="this.parentElement.innerHTML='<span style=font-size:11px;color:#94a3b8>🖼 Imagem</span>'">`;
+        if (m.texto && m.tipo !== 'sticker') conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
       } else if (m.tipo === 'audio' && m.url) {
         conteudo = `<audio controls style="max-width:220px;height:36px"><source src="${m.url}"></audio>`;
       } else if (m.tipo === 'video' && m.url) {
@@ -4280,6 +4304,9 @@ async function _carregarMsgsBaileys(num) {
         if (m.texto) conteudo += `<div style="font-size:12px;margin-top:4px">${escHtml(m.texto)}</div>`;
       } else if (m.tipo === 'document' && m.url) {
         conteudo = `<a href="${m.url}" target="_blank" style="font-size:12px;color:#2563eb;font-weight:600;text-decoration:none">📎 ${escHtml(m.texto||'Documento')}</a>`;
+      } else if ((m.tipo === 'image' || m.tipo === 'audio' || m.tipo === 'video' || m.tipo === 'sticker') && !m.url) {
+        const icons = {image:'🖼',audio:'🎵',video:'🎬',sticker:'🩷'};
+        conteudo = `<span style="font-size:12px;color:#94a3b8">${icons[m.tipo]||'📎'} ${m.tipo.charAt(0).toUpperCase()+m.tipo.slice(1)} recebido</span>`;
       } else {
         conteudo = `<div style="font-size:13px;white-space:pre-wrap">${escHtml(m.texto||'')}</div>`;
       }
@@ -4312,6 +4339,79 @@ async function _enviarMidiaBaileys(file) {
     showToast('✅ Mídia enviada!', 'success');
     await _carregarMsgsBaileys(num);
   } catch(e) { showToast('❌ Erro: ' + e.message, 'error'); }
+}
+
+// ── Enviar mídia via Meta Cloud API (WhatsApp oficial) ───────────────────────
+async function _enviarMidiaWppMeta(file) {
+  if (!file) return;
+  const de = uiState.metaChatDe;
+  if (!de) return;
+  const metaInput = document.getElementById('metaFileInput');
+  if (metaInput) metaInput.value = '';
+  const fd = new FormData();
+  fd.append('arquivo', file);
+  fd.append('para', de);
+  try {
+    toast('Enviando arquivo...', 'info');
+    const token = _getAuthToken();
+    const r = await fetch('/api/whatsapp/enviar-midia', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) { toast('❌ ' + (data.erro || 'Erro ao enviar'), 'error'); return; }
+    toast('✅ Arquivo enviado!', 'success');
+    setTimeout(async () => {
+      const msgs = await api('GET', '/api/whatsapp/mensagens/' + de);
+      S(s => { s.metaMensagens = s.metaMensagens || {}; s.metaMensagens[de] = msgs; });
+      renderMsgsMeta(de);
+    }, 800);
+  } catch(e) { toast('❌ Erro: ' + e.message, 'error'); }
+}
+
+// ── Gravação de áudio via MediaRecorder ──────────────────────────────────────
+var _mediaRecorder = null;
+var _audioChunks = [];
+var _gravandoAudio = false;
+var _gravacaoChatType = '';
+
+function _toggleGravacaoAudio(chatType) {
+  if (_gravandoAudio) {
+    _pararGravacaoAudio();
+  } else {
+    _iniciarGravacaoAudio(chatType);
+  }
+}
+
+function _iniciarGravacaoAudio(chatType) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast('Seu navegador não suporta gravação de áudio', 'error'); return;
+  }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    _gravacaoChatType = chatType;
+    _audioChunks = [];
+    var mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/ogg;codecs=opus';
+    _mediaRecorder = new MediaRecorder(stream, { mimeType });
+    _mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) _audioChunks.push(e.data); };
+    _mediaRecorder.onstop = function() {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      var ext = mimeType.includes('webm') ? 'webm' : 'ogg';
+      var blob = new Blob(_audioChunks, { type: mimeType });
+      var file = new File([blob], 'audio_' + Date.now() + '.' + ext, { type: mimeType });
+      if (_gravacaoChatType === 'baileys') _enviarMidiaBaileys(file);
+      else if (_gravacaoChatType === 'meta') _enviarMidiaWppMeta(file);
+      else toast('Canal não suporta envio de áudio gravado', 'error');
+    };
+    _mediaRecorder.start();
+    _gravandoAudio = true;
+    var btn = document.getElementById('btnGravarAudio');
+    if (btn) { btn.style.background = '#fee2e2'; btn.style.color = '#ef4444'; btn.title = 'Parar gravação'; }
+    toast('🔴 Gravando... Clique em 🎤 novamente para parar', 'info');
+  }).catch(function() { toast('❌ Permissão de microfone negada', 'error'); });
+}
+
+function _pararGravacaoAudio() {
+  if (_mediaRecorder && _mediaRecorder.state !== 'inactive') _mediaRecorder.stop();
+  _gravandoAudio = false;
+  var btn = document.getElementById('btnGravarAudio');
+  if (btn) { btn.style.background = ''; btn.style.color = ''; btn.title = 'Gravar áudio'; }
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -4348,6 +4448,7 @@ async function openChatInstagram(de, nome) {
     <div id="transferInfoInstagram" style="padding:8px 12px;background:#f3f4f6;border-bottom:1px solid #e5e7eb;font-size:11px;display:none"></div>
     <div class="msgs" id="msgBox" style="flex:1;overflow-y:auto;padding:12px"></div>
     <div class="msg-inp-row">
+      <button id="btnGravarAudio" class="btn btn-ghost" style="padding:6px 8px;font-size:16px;min-width:36px;flex-shrink:0;transition:background .2s" onclick="_toggleGravacaoAudio('instagram')" title="Gravar áudio">🎤</button>
       <input type="text" class="msg-inp" id="msgInput" placeholder="Digite sua mensagem..." onkeydown="if(event.key==='Enter')sendMsgInstagram()">
       <button class="send-btn" onclick="sendMsgInstagram()">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -7564,7 +7665,7 @@ async function _scriptSugerirResposta() {
   if (resultado) resultado.style.display = 'none';
 
   try {
-    var r = await api('POST', '/script/sugerir', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
+    var r = await api('POST', '/api/script/sugerir', { mensagem: msg, nome: nome, historico: _scriptIA_historico });
     var resposta = r.resposta || 'Não foi possível gerar resposta.';
     _scriptMostrarResultado(resposta);
     _scriptAdicionarHistorico('cliente', msg);

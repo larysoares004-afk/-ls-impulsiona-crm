@@ -1181,6 +1181,70 @@ app.post('/api/whatsapp/enviar', auth, async (req, res) => {
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
+// Enviar mídia via Meta Cloud API (WhatsApp)
+app.post('/api/whatsapp/enviar-midia', auth, upload ? upload.single('arquivo') : (req,res,next)=>next(), async (req, res) => {
+  if (!req.file) return res.status(400).json({ erro: 'Arquivo obrigatório' });
+  const { para } = req.body;
+  if (!para) return res.status(400).json({ erro: 'Destinatário obrigatório' });
+
+  let conta = db.prepare('SELECT * FROM wpp_contas WHERE ativo=1 ORDER BY criado_em LIMIT 1').get();
+  if (!conta?.token) {
+    const cfg = db.prepare("SELECT valor FROM config WHERE chave='whatsapp_meta'").get();
+    if (!cfg) return res.status(400).json({ erro: 'WhatsApp não configurado' });
+    const c = JSON.parse(cfg.valor);
+    conta = { token: c.token, phone_id: c.phoneId };
+  }
+  const { token, phone_id: phoneId } = conta;
+  if (!token || !phoneId) return res.status(400).json({ erro: 'Token ou Phone ID faltando' });
+
+  try {
+    // Upload para Meta
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const blob = new Blob([fileBuffer], { type: req.file.mimetype });
+    const formData = new FormData();
+    formData.append('file', blob, req.file.originalname || 'arquivo');
+    formData.append('messaging_product', 'whatsapp');
+
+    const uploadR = await fetchComTimeout(`https://graph.facebook.com/v20.0/${phoneId}/media`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: formData
+    });
+    const uploadData = await uploadR.json();
+    if (!uploadData.id) return res.status(400).json({ erro: uploadData.error?.message || 'Falha no upload para Meta' });
+
+    const mediaId = uploadData.id;
+    const mime = req.file.mimetype;
+    let msgType = 'document';
+    if (mime.startsWith('image/') && !mime.includes('gif')) msgType = 'image';
+    else if (mime.startsWith('audio/')) msgType = 'audio';
+    else if (mime.startsWith('video/')) msgType = 'video';
+
+    const body = { messaging_product: 'whatsapp', to: para.replace(/\D/g,''), type: msgType };
+    body[msgType] = msgType === 'audio' ? { id: mediaId } : { id: mediaId, caption: '' };
+
+    const sendR = await fetchComTimeout(`https://graph.facebook.com/v20.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify(body)
+    });
+    const sendData = await sendR.json();
+    if (!sendR.ok) return res.status(400).json({ erro: sendData.error?.message || 'Erro ao enviar mídia' });
+
+    const dtBrasil = new Date(Date.now() - (3*60*60*1000));
+    const criadoEm = dtBrasil.toISOString().slice(0,19).replace('T',' ');
+    db.prepare(`INSERT INTO wpp_mensagens (wamid,de,nome,texto,tipo,direcao,criado_em) VALUES (?,?,?,?,?,?,?)`)
+      .run(sendData.messages?.[0]?.id || `local_${Date.now()}`, para.replace(/\D/g,''), req.user?.nome||'Atendente', req.file.originalname||'Arquivo', msgType, 'enviada', criadoEm);
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('❌ Erro enviar-midia:', e.message);
+    res.status(500).json({ erro: e.message });
+  } finally {
+    try { fs.unlinkSync(req.file.path); } catch(e) {}
+  }
+});
+
 // Salvar config da Meta API — WHATSAPP APENAS
 app.put('/api/config/whatsapp-meta', auth, requireRole('admin','gestor'), (req, res) => {
   // Salvar APENAS config WhatsApp (sem auto-config do Instagram)
