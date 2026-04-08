@@ -65,23 +65,26 @@ try { fs.rmSync(DB_PATH + '-shm', { force: true }); } catch(e) {}
 
 // Tentar abrir o banco com retry (Railway pode ter dois containers brevemente)
 let db;
-for (let _try = 0; _try < 10; _try++) {
-  try {
-    db = new Database(DB_PATH);
-    break;
-  } catch(e) {
-    if (_try >= 9) throw e;
-    // Espera síncrona de 1s (Atomics trick compatível com Node)
-    const shared = new Int32Array(new SharedArrayBuffer(4));
-    Atomics.wait(shared, 0, 0, 1000);
-  }
-}
-try { db.exec('PRAGMA journal_mode=WAL'); } catch(e) {}
-try { db.exec('PRAGMA busy_timeout=5000'); } catch(e) {}
-try { db.exec('PRAGMA foreign_keys = ON'); } catch(e) {}
+let dbAvailable = false;
 
-// Separado em chamadas individuais — node-sqlite3-wasm não suporta multi-statement exec
-db.exec(`CREATE TABLE IF NOT EXISTS usuarios (
+try {
+  for (let _try = 0; _try < 10; _try++) {
+    try {
+      db = new Database(DB_PATH);
+      break;
+    } catch(e) {
+      if (_try >= 9) throw e;
+      // Espera síncrona de 1s (Atomics trick compatível com Node)
+      const shared = new Int32Array(new SharedArrayBuffer(4));
+      Atomics.wait(shared, 0, 0, 1000);
+    }
+  }
+  try { db.exec('PRAGMA journal_mode=WAL'); } catch(e) {}
+  try { db.exec('PRAGMA busy_timeout=5000'); } catch(e) {}
+  try { db.exec('PRAGMA foreign_keys = ON'); } catch(e) {}
+
+  // Separado em chamadas individuais — node-sqlite3-wasm não suporta multi-statement exec
+  db.exec(`CREATE TABLE IF NOT EXISTS usuarios (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   nome         TEXT NOT NULL,
   usuario      TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -460,6 +463,15 @@ const PERMISSOES = {
   vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
   optometrista:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
 };
+
+  dbAvailable = true;
+  console.log('✅ Banco de dados inicializado com sucesso');
+} catch(e) {
+  console.error('⚠️  Banco de dados não disponível (Railway):', e.message);
+  console.log('🌐 Servidor continuará rodando para servir o site');
+  db = null;
+  dbAvailable = false;
+}
 
 // ── Middlewares ───────────────────────────────────────────────────────────────
 app.use(helmet({
