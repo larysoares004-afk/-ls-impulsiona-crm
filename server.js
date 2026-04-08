@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express    = require('express');
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
-let _WasmDB; try { const mod = require('node-sqlite3-wasm'); _WasmDB = mod.Database; } catch(e) { _WasmDB = null; }
+let _WasmDB = null;
 // Shim: aceita args variádicos como better-sqlite3
 function Database(path) {
   if (!_WasmDB) throw new Error('sqlite3 not available');
