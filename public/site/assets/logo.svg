@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 60" width="260" height="60" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00c8ff"/>
+      <stop offset="100%" stop-color="#7b5cfa"/>
+    </linearGradient>
+  </defs>
+  <!-- LS mark box -->
+  <rect x="0" y="6" width="48" height="48" rx="10" fill="url(#grad)"/>
+  <text x="10" y="40" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="24" fill="white" letter-spacing="-1">LS</text>
+  <!-- Brand name -->
+  <text x="60" y="30" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="18" fill="white" letter-spacing="0.5">LS INTERNATIONAL</text>
+  <text x="61" y="46" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="9" fill="#00c8ff" letter-spacing="2.5">MARKETING &amp; PERFORMANCE</text>
+</svg>

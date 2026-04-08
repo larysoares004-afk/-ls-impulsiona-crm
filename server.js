@@ -2619,6 +2619,11 @@ app.post('/api/wpp-qr/send-video', auth, async (req, res) => {
   }
 });
 
+// ── Site institucional LS International ──────────────────────────────────────
+app.get(['/institucional', '/institucional/'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'site', 'index.html'));
+});
+
 // ── Catch-all: serve index.html para rotas do frontend ───────────────────────
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
