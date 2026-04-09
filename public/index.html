@@ -6986,7 +6986,7 @@ async function renderVideosHoje() {
 // ── WhatsApp QR Gratuito (Baileys) ────────────────────────────────────────────
 let _wppQrPollTimer = null;
 
-function _wppQrSetUI(status, qr, number) {
+function _wppQrSetUI(status, qr, number, erro) {
   const badge = document.getElementById('wppQrStatusBadge');
   const img   = document.getElementById('wppQrImg');
   const msg   = document.getElementById('wppQrMsg');
@@ -7022,6 +7022,15 @@ function _wppQrSetUI(status, qr, number) {
     badge.textContent = '⏳ Conectando...';
     img.style.display = 'none';
     msg.textContent = 'Gerando QR Code, aguarde 5-10 segundos...';
+  } else if (status === 'error') {
+    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626';
+    badge.textContent = '❌ Erro';
+    img.style.display = 'none';
+    msg.style.cssText = 'font-size:13px;color:#dc2626;text-align:center;max-width:300px';
+    msg.innerHTML = '<strong>Falha ao conectar WhatsApp</strong><br><span style="font-size:12px;color:#64748b;display:block;margin-top:4px">' + (erro || 'Erro desconhecido. Tente novamente.') + '</span>';
+    num.style.display = 'none';
+    if (btnC) btnC.style.display = 'block';
+    clearInterval(_wppQrPollTimer);
   } else {
     badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b';
     badge.textContent = 'Desconectado';
@@ -7036,7 +7045,7 @@ function _wppQrSetUI(status, qr, number) {
 async function _wppQrPoll() {
   try {
     const d = await api('GET', '/api/wpp-qr/status');
-    _wppQrSetUI(d.status, d.qr, d.number);
+    _wppQrSetUI(d.status, d.qr, d.number, d.erro);
     if (d.status === 'connected' || d.status === 'disconnected' || d.status === 'error') {
       clearInterval(_wppQrPollTimer);
     }
@@ -7047,7 +7056,7 @@ async function conectarWppQR() {
   _wppQrSetUI('connecting');
   try {
     const d = await api('POST', '/api/wpp-qr/connect');
-    _wppQrSetUI(d.status, d.qr, d.number);
+    _wppQrSetUI(d.status, d.qr, d.number, d.erro);
     // Polling a cada 3s enquanto aguarda scan
     clearInterval(_wppQrPollTimer);
     _wppQrPollTimer = setInterval(_wppQrPoll, 3000);
@@ -7069,7 +7078,7 @@ function renderWppComQR() {
   setTimeout(async () => {
     try {
       const d = await api('GET', '/api/wpp-qr/status');
-      _wppQrSetUI(d.status, d.qr, d.number);
+      _wppQrSetUI(d.status, d.qr, d.number, d.erro);
       if (d.status === 'qr' || d.status === 'connecting') {
         clearInterval(_wppQrPollTimer);
         _wppQrPollTimer = setInterval(_wppQrPoll, 3000);
@@ -7756,7 +7765,7 @@ function _esc(s) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
 <!-- Dashboard v2 -->
-<script src="/dashboard-v2.js?v=20260408"></script>
+<script src="/dashboard-v2.js?v=20260409"></script>
 
 </body>
 </html>
