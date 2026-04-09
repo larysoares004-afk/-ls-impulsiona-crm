@@ -352,7 +352,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS ranking (
 
 // Inserir os 4 atendentes do ranking se não existirem
 (function seedRanking() {
-  const nomes = ['Daniel', 'Gabriel', 'Pedro', 'Kim'];
+  const nomes = ['Daniela', 'Gabriel', 'Pedro', 'Kim'];
   const stmt = db.prepare("SELECT id FROM ranking WHERE nome=?");
   const ins  = db.prepare("INSERT INTO ranking (nome, vendas, pontos) VALUES (?,0,0)");
   nomes.forEach(n => { if (!stmt.get(n)) ins.run(n); });
@@ -461,16 +461,6 @@ for (const u of DEFAULTS) {
   }
 }
 
-// ── Permissões ────────────────────────────────────────────────────────────────
-const PERMISSOES = {
-  admin:    ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
-  gestor:   ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
-  gerente:  ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking'],
-  atendente:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
-  vendedor: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
-  optometrista:['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
-};
-
   dbAvailable = true;
   console.log('✅ Banco de dados inicializado com sucesso');
 } catch(e) {
@@ -479,6 +469,16 @@ const PERMISSOES = {
   db = null;
   dbAvailable = false;
 }
+
+// ── Permissões por role ──────────────────────────────────────────────────────
+const PERMISSOES = {
+  admin:        ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gestor:       ['dashboard','leads','faturamento','setores','servicos','whatsapp','atendimentos','config','usuarios','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  gerente:      ['dashboard','leads','setores','servicos','whatsapp','atendimentos','config','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  atendente:    ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  vendedor:     ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+  optometrista: ['dashboard','leads','whatsapp','atendimentos','que-chegou','se-converteu','videos','indicacoes','ranking'],
+};
 
 // ── Middlewares ───────────────────────────────────────────────────────────────
 app.use(helmet({
@@ -1659,7 +1659,7 @@ app.post('/api/whatsapp/corrigir-timestamps', auth, requireRole('admin'), (req, 
 // ════════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, version: '2.1.0-db-fix', empresa: 'LS Impulsiona', db: !!dbAvailable, uptime: process.uptime() });
+  res.json({ ok: true, version: '2.2.0-permissoes-fix', empresa: 'LS Impulsiona', db: !!dbAvailable, uptime: process.uptime() });
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
