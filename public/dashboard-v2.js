@@ -177,10 +177,34 @@ async function renderDashboardV2() {
 
 // Helper para fetch com token
 function _api(url, opts) {
-  const token = (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
-    ? currentUser.token
-    : (typeof localStorage !== 'undefined' ? localStorage.getItem('alliance_token') : '');
-  return fetch(url, { ...opts, headers: { 'Authorization': 'Bearer ' + (token || ''), 'Content-Type': 'application/json', ...(opts && opts.headers) } });
+  // Busca o token: tenta sessionStorage primeiro (como api() do index.html), depois localStorage
+  let token = '';
+  try {
+    const s = JSON.parse(sessionStorage.getItem('alliance_sess') || 'null');
+    if (s && s.token) token = s.token;
+  } catch(e) {}
+  if (!token) {
+    token = (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
+      ? currentUser.token
+      : (typeof localStorage !== 'undefined' ? (localStorage.getItem('alliance_token') || '') : '');
+  }
+  return fetch(url, {
+    credentials: 'include',
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      ...(opts && opts.headers)
+    }
+  }).then(function(res) {
+    if (!res.ok) {
+      // Lança erro para que os blocos try/catch dos chamadores usem o valor padrão (array vazio, etc.)
+      return res.json().catch(function(){ return {}; }).then(function(d) {
+        throw new Error(d.error || d.erro || ('Erro HTTP ' + res.status));
+      });
+    }
+    return res;
+  });
 }
 
 // Renderizar aba "Que chegou" (Leads com filtros)
@@ -619,6 +643,7 @@ async function renderIndicacoes() {
   try {
     const res = await _api('/api/indicacoes');
     indicacoes = await res.json();
+    if (!Array.isArray(indicacoes)) indicacoes = [];
   } catch(e) { indicacoes = []; }
 
   const STATUS_IND = {
@@ -757,6 +782,7 @@ async function renderRanking() {
   try {
     const res = await _api('/api/ranking');
     ranking = await res.json();
+    if (!Array.isArray(ranking)) ranking = [];
   } catch(e) { ranking = []; }
 
   const isAdmin = typeof currentUser !== 'undefined' && currentUser && ['admin','gestor'].includes(currentUser.role);

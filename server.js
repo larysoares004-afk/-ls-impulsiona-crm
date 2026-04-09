@@ -1611,7 +1611,7 @@ app.get('/api/health', (req, res) => {
 // ════════════════════════════════════════════════════════════════════════════════
 // SCRIPT DE VENDAS — IA sugere resposta para o vendedor
 // ════════════════════════════════════════════════════════════════════════════════
-app.post('/api/script/sugerir', auth, async (req, res) => {
+app.post('/api/script/sugerir', async (req, res) => {
   try {
     const { mensagem, nome, historico } = req.body;
     if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatória' });
