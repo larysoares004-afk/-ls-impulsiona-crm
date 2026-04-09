@@ -2433,13 +2433,20 @@ function goTo(tab) {
   // Empilhar tela atual no histórico (só mobile, só se diferente)
   if (window.innerWidth <= 900 && uiState.currentTab && uiState.currentTab !== tab) {
     _navHistory.push(uiState.currentTab);
-    if (_navHistory.length > 10) _navHistory.shift(); // limitar histórico
+    if (_navHistory.length > 10) _navHistory.shift();
   }
-  // Fechar menu mobile ao navegar
-  if(window.innerWidth <= 768) closeMobileMenu();
+  // Fechar menu mobile ao navegar — usa 900px igual ao breakpoint do CSS
+  closeMobileMenu();
+  // Limpar overlays de modal que ficaram presos (ex: transfer modal)
+  document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
+  // Parar timers de chat quando sai de atendimentos
+  if (uiState.currentTab === 'atendimentos' && tab !== 'atendimentos') {
+    if (window._metaPollTimer)      { clearInterval(window._metaPollTimer);      window._metaPollTimer = null; }
+    if (window._baileysPollTimer)   { clearInterval(window._baileysPollTimer);   window._baileysPollTimer = null; }
+    if (window._instagramPollTimer) { clearInterval(window._instagramPollTimer); window._instagramPollTimer = null; }
+  }
   // Verificar permissão
   if (currentUser) {
-    // Admin e gestor têm acesso total sempre
     if (currentUser.role !== 'admin' && currentUser.role !== 'gestor') {
       const permitidas = PERMISSOES[currentUser.role] || [];
       if (!permitidas.includes(tab)) {
@@ -2453,7 +2460,7 @@ function goTo(tab) {
   // Mostrar a view correta
   const view = document.getElementById('view-' + tab);
   if (view) view.classList.add('on');
-  // Sincronizar botões do menu pelo atributo onclick (não por índice)
+  // Sincronizar botões do menu pelo atributo onclick
   document.querySelectorAll('.nb').forEach(b => {
     b.classList.remove('on');
     const oc = b.getAttribute('onclick') || '';
@@ -2468,7 +2475,7 @@ function goTo(tab) {
   if (tab==='setores')         renderSetores();
   if (tab==='servicos')        renderServicos();
   if (tab==='chat')            renderChatInterno();
-  if (tab==='whatsapp')        { _pararPollAtendimentos(); renderWppComQR(); setTimeout(loadWppApiConfig, 100); }
+  if (tab==='whatsapp')        { _pararPollAtendimentos(); renderWppComQR(); setTimeout(() => { loadWppApiConfig(); carregarContasMeta(); }, 100); }
   if (tab==='atendimentos')    { renderAttList(); _iniciarPollAtendimentos(); }
   if (tab==='config')          { _pararPollAtendimentos(); renderConfig(); }
   if (tab==='que-chegou')      renderQueChegou();
@@ -2476,11 +2483,10 @@ function goTo(tab) {
   if (tab==='videos')          renderVideos();
   if (tab==='indicacoes')      renderIndicacoes();
   if (tab==='ranking')         renderRanking();
-  if (tab==='novo')         { _pararPollAtendimentos(); initNovo(); }
+  if (tab==='novo')            { _pararPollAtendimentos(); initNovo(); }
   if (tab==='script')          renderScript();
   // Scroll para o topo
   document.querySelector('.cnt')?.scrollTo(0, 0);
-  // Atualizar visibilidade do botão Voltar
   _atualizarBtnVoltar();
 }
 
@@ -3794,8 +3800,6 @@ async function carregarConversasMeta() {
     const dados = await api('GET', '/api/whatsapp/conversas');
     S(s => s.metaConversas = dados || []);
     if (uiState.currentTab === 'atendimentos') renderAttList();
-    // Carregar e mostrar transferências
-    carregarTransferenciasRecebidas();
   } catch(e) {
     // Silencioso no polling — evita spam no console
   } finally {
@@ -3926,8 +3930,13 @@ function _pararPollAtendimentos() {
 async function atualizarAtendimentos() {
   const btn = document.getElementById('attRefreshBtn');
   if (btn) { btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none'; }
-  await carregarConversasMeta();
-  if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
+  try {
+    await Promise.all([carregarConversasMeta(), carregarConversasInstagram(), _sincronizarBaileys()]);
+  } catch(e) {}
+  finally {
+    const b = document.getElementById('attRefreshBtn');
+    if (b) { b.style.opacity = '1'; b.style.pointerEvents = ''; }
+  }
 }
 
 // Abre conversa da Meta e carrega mensagens do backend
@@ -3986,7 +3995,7 @@ async function openChatMeta(de, nome) {
   // Polling a cada 5s para novas mensagens
   if (window._metaPollTimer) clearInterval(window._metaPollTimer);
   window._metaPollTimer = setInterval(async () => {
-    if (uiState.metaChatDe !== de) { clearInterval(window._metaPollTimer); return; }
+    if (uiState.metaChatDe !== de || uiState.currentTab !== 'atendimentos') { clearInterval(window._metaPollTimer); window._metaPollTimer = null; return; }
     try {
       const msgs = await api('GET', '/api/whatsapp/mensagens/' + de);
       S(s => { s.metaMensagens = s.metaMensagens || {}; s.metaMensagens[de] = msgs; });
@@ -4275,7 +4284,7 @@ async function openChatBaileys(phone, nome) {
 
   if (window._baileysPollTimer) clearInterval(window._baileysPollTimer);
   window._baileysPollTimer = setInterval(async () => {
-    if (uiState.baileysChatNum !== num) { clearInterval(window._baileysPollTimer); return; }
+    if (uiState.baileysChatNum !== num || uiState.currentTab !== 'atendimentos') { clearInterval(window._baileysPollTimer); window._baileysPollTimer = null; return; }
     await _carregarMsgsBaileys(num);
   }, 4000);
 }
@@ -4475,7 +4484,7 @@ async function openChatInstagram(de, nome) {
   // Polling a cada 5s
   if (window._instagramPollTimer) clearInterval(window._instagramPollTimer);
   window._instagramPollTimer = setInterval(async () => {
-    if (uiState.instagramChatDe !== de) { clearInterval(window._instagramPollTimer); return; }
+    if (uiState.instagramChatDe !== de || uiState.currentTab !== 'atendimentos') { clearInterval(window._instagramPollTimer); window._instagramPollTimer = null; return; }
     try {
       const msgs = await api('GET', '/api/instagram/mensagens/' + de);
       S(s => { s.instagramMensagens = s.instagramMensagens || {}; s.instagramMensagens[de] = msgs; });
@@ -4677,20 +4686,41 @@ function sendMsg(){
   }
 }
 
-function finalizeChat(){toast('Atendimento finalizado!','success');}
+function finalizeChat(){
+  // Parar timers do chat ativo
+  if (window._metaPollTimer)      { clearInterval(window._metaPollTimer);      window._metaPollTimer = null; }
+  if (window._baileysPollTimer)   { clearInterval(window._baileysPollTimer);   window._baileysPollTimer = null; }
+  if (window._instagramPollTimer) { clearInterval(window._instagramPollTimer); window._instagramPollTimer = null; }
+  // Limpar estado do chat
+  uiState.activeChat = null;
+  uiState.metaChatDe = null;
+  uiState.baileysChatNum = null;
+  uiState.instagramChatDe = null;
+  // Voltar à tela de seleção
+  const attMain = document.getElementById('attMain');
+  if (attMain) attMain.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--z400)"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p style="font-size:13px;font-weight:500;margin-top:12px">Selecione uma conversa</p></div>';
+  renderAttList();
+  toast('Atendimento finalizado!','success');
+}
 
 // ── TRANSFERÊNCIA DE CONVERSAS ───────────────────────────────────────────────
+var _abrindoTransferModal = false;
 function abrirTransferConversaModal(de) {
+  // Remover qualquer modal de transferência já aberto
+  document.querySelectorAll('[id^="transferModal_"]').forEach(el => el.remove());
+
   // Carrega usuarios do servidor se não estiver em cache
   let usuarios = state.usuarios || [];
 
-  // Se não tem usuarios, carrega do servidor
+  // Se não tem usuarios, carrega do servidor (com flag para evitar recursão dupla)
   if (usuarios.length === 0) {
+    if (_abrindoTransferModal) return;
+    _abrindoTransferModal = true;
     api('GET', '/api/usuarios').then(data => {
       S(s => s.usuarios = data || []);
-      usuarios = data || [];
-      abrirTransferConversaModal(de); // Tenta novamente
-    }).catch(e => toast('Erro ao carregar usuários', 'error'));
+      _abrindoTransferModal = false;
+      abrirTransferConversaModal(de);
+    }).catch(e => { _abrindoTransferModal = false; toast('Erro ao carregar usuários', 'error'); });
     return;
   }
 
@@ -4726,6 +4756,7 @@ function abrirTransferConversaModal(de) {
 
 async function transferirConversa(de, modalId) {
   const select = document.getElementById('transferParaUsuario');
+  if (!select) { toast('Erro: modal não encontrado', 'error'); return; }
   if (!select.value) { toast('Selecione um usuário', 'error'); return; }
 
   const option = select.options[select.selectedIndex];
@@ -6351,9 +6382,13 @@ async function salvarNovaContaMeta() {
 
 async function removerContaMeta(id) {
   if (!confirm('Remover esta conta?')) return;
-  await api('DELETE', '/api/whatsapp/contas/' + id);
-  toast('Conta removida', 'success');
-  carregarContasMeta();
+  try {
+    await api('DELETE', '/api/whatsapp/contas/' + id);
+    toast('Conta removida', 'success');
+    carregarContasMeta();
+  } catch(e) {
+    toast('Erro ao remover conta: ' + (e.message || 'Tente novamente'), 'error');
+  }
 }
 
 async function editarContaMeta(id) {
