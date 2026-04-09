@@ -1654,7 +1654,7 @@ app.post('/api/whatsapp/corrigir-timestamps', auth, requireRole('admin'), (req, 
 // ════════════════════════════════════════════════════════════════════════════════
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, version: '2.0.0', empresa: 'LS Impulsiona', uptime: process.uptime() });
+  res.json({ ok: true, version: '2.1.0-db-fix', empresa: 'LS Impulsiona', db: !!dbAvailable, uptime: process.uptime() });
 });
 
 // ════════════════════════════════════════════════════════════════════════════════
