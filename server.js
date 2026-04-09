@@ -478,7 +478,23 @@ app.use(helmet({
   contentSecurityPolicy: false, // CRM usa inline scripts
 }));
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || true,
+  origin: function(origin, callback) {
+    // Sem origin = requisição same-origin (navegador na mesma URL) — sempre permitir
+    if (!origin) return callback(null, true);
+    const allowed = process.env.ALLOWED_ORIGIN;
+    // Permitir: origem configurada, subdomínios Railway, localhost para dev
+    if (
+      (allowed && origin === allowed) ||
+      /\.railway\.app$/.test(origin) ||
+      /\.up\.railway\.app$/.test(origin) ||
+      /^https?:\/\/localhost(:\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    // Bloqueia origens desconhecidas (proteção CSRF/CORS)
+    return callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -518,15 +534,26 @@ function fetchComTimeout(url, options = {}, timeoutMs = 10000) {
 }
 
 function auth(req, res, next) {
-  const token = req.cookies?.crm_token || req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Não autenticado' });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    res.clearCookie('crm_token');
-    return res.status(401).json({ error: 'Sessão expirada' });
+  // Tenta cookie httpOnly primeiro, depois Authorization header — independentes.
+  // CRÍTICO: não usar ||, pois se o cookie existir mas for inválido (expirado), o || nunca
+  // chegaria ao header, deixando o usuário preso em 401 mesmo com token válido no localStorage.
+  let verified = null;
+  const cookieToken = req.cookies?.crm_token;
+  const headerToken = (req.headers.authorization || '').replace('Bearer ', '').trim();
+
+  if (cookieToken) {
+    try { verified = jwt.verify(cookieToken, JWT_SECRET); } catch(_e) { /* inválido/expirado */ }
   }
+  if (!verified && headerToken) {
+    try { verified = jwt.verify(headerToken, JWT_SECRET); } catch(_e) { /* inválido/expirado */ }
+  }
+
+  if (!verified) {
+    if (cookieToken) res.clearCookie('crm_token'); // limpa cookie inválido
+    return res.status(401).json({ error: 'Não autenticado' });
+  }
+  req.user = verified;
+  next();
 }
 
 function requireRole(...roles) {
@@ -556,10 +583,10 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
 
   const isProduction = process.env.NODE_ENV === 'production';
   res.cookie('crm_token', token, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'none',
-    maxAge: 8 * 3600 * 1000,
+    httpOnly: true,          // JS não consegue ler — proteção XSS
+    secure: isProduction,    // HTTPS only em prod
+    sameSite: isProduction ? 'none' : 'lax', // 'none' necessário para Railway (cross-site)
+    maxAge: 30 * 24 * 3600 * 1000, // 30 dias (antes era 8h — causava expiração silenciosa)
   });
 
   // Notificar admins/gestores sobre novo acesso (assíncrono, não bloqueia)
@@ -1747,9 +1774,16 @@ app.get('/api/stats', auth, (req, res) => {
 // STATIC — serve o CRM
 // ════════════════════════════════════════════════════════════════════════════════
 
-// HTML nunca cacheado — JS/CSS cacheados por 1h
+// HTML e JS nunca cacheados — garante que fixes cheguem imediatamente ao browser
+// CSS/imagens/fontes: 1h de cache (não contêm lógica crítica)
 app.use((req, res, next) => {
-  if (req.path === '/' || req.path.endsWith('.html') || req.path.endsWith('sw.js')) {
+  const p = req.path;
+  if (
+    p === '/' ||
+    p.endsWith('.html') ||
+    p.endsWith('.js') ||    // <-- JS incluído: api(), dashboard-v2.js, sw.js, etc.
+    p.endsWith('sw.js')
+  ) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
