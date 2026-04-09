@@ -2435,10 +2435,8 @@ function goTo(tab) {
     _navHistory.push(uiState.currentTab);
     if (_navHistory.length > 10) _navHistory.shift();
   }
-  // Fechar menu mobile ao navegar — usa 900px igual ao breakpoint do CSS
-  closeMobileMenu();
-  // Limpar overlays de modal que ficaram presos (ex: transfer modal)
-  document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
+  // Fechar menu mobile ao navegar — threshold 900px igual ao breakpoint do CSS
+  if (window.innerWidth <= 900) closeMobileMenu();
   // Parar timers de chat quando sai de atendimentos
   if (uiState.currentTab === 'atendimentos' && tab !== 'atendimentos') {
     if (window._metaPollTimer)      { clearInterval(window._metaPollTimer);      window._metaPollTimer = null; }
