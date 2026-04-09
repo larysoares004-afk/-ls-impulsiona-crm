@@ -591,29 +591,34 @@ function requireRole(...roles) {
 // ════════════════════════════════════════════════════════════════════════════════
 
 app.post('/api/auth/login', loginLimiter, (req, res) => {
-  const { usuario, senha } = req.body || {};
-  if (!usuario || !senha) return res.status(400).json({ error: 'Preencha usuário e senha' });
+  try {
+    if (!db) return res.status(503).json({ error: 'Banco de dados não disponível. Tente novamente em instantes.' });
+    const { usuario, senha } = req.body || {};
+    if (!usuario || !senha) return res.status(400).json({ error: 'Preencha usuário e senha' });
 
-  const u = db.prepare('SELECT * FROM usuarios WHERE usuario=? AND ativo=1').get(usuario);
-  if (!u || !bcrypt.compareSync(senha, u.senha_hash))
-    return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+    const u = db.prepare('SELECT * FROM usuarios WHERE usuario=? AND ativo=1').get(usuario);
+    if (!u || !bcrypt.compareSync(senha, u.senha_hash))
+      return res.status(401).json({ error: 'Usuário ou senha incorretos' });
 
-  db.prepare("UPDATE usuarios SET ultimo_acesso=datetime('now','localtime') WHERE id=?").run(u.id);
+    try { db.prepare("UPDATE usuarios SET ultimo_acesso=datetime('now','localtime') WHERE id=?").run(u.id); } catch(_e) {}
 
-  const payload = { id: u.id, nome: u.nome, usuario: u.usuario, cargo: u.cargo, role: u.role, setor: u.setor };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '365d' });
+    const payload = { id: u.id, nome: u.nome, usuario: u.usuario, cargo: u.cargo, role: u.role, setor: u.setor };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '365d' });
 
-  const isProduction = process.env.NODE_ENV === 'production';
-  res.cookie('crm_token', token, {
-    httpOnly: true,          // JS não consegue ler — proteção XSS
-    secure: isProduction,    // HTTPS only em prod
-    sameSite: isProduction ? 'none' : 'lax', // 'none' necessário para Railway (cross-site)
-    maxAge: 30 * 24 * 3600 * 1000, // 30 dias (antes era 8h — causava expiração silenciosa)
-  });
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('crm_token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 30 * 24 * 3600 * 1000,
+    });
 
-  // Notificar admins/gestores sobre novo acesso (assíncrono, não bloqueia)
-  setImmediate(() => { try { notificarNovoAcesso(u.nome, u.role); } catch(e) {} });
-  res.json({ ok: true, user: payload, permissoes: PERMISSOES[u.role] || [], token });
+    setImmediate(() => { try { notificarNovoAcesso(u.nome, u.role); } catch(e) {} });
+    res.json({ ok: true, user: payload, permissoes: PERMISSOES[u.role] || [], token });
+  } catch(e) {
+    console.error('❌ Erro no login:', e.message, e.stack);
+    res.status(500).json({ error: 'Erro interno no login: ' + e.message });
+  }
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -2895,6 +2900,12 @@ app.use('/site', express.static(path.join(__dirname, 'public', 'site'), {
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ── Error handler global — NUNCA retornar HTML genérico, sempre JSON ────────
+app.use((err, req, res, _next) => {
+  console.error('❌ Erro não capturado:', err.message, err.stack);
+  res.status(500).json({ error: 'Erro interno: ' + (err.message || 'desconhecido') });
 });
 
 // ── Iniciar servidor ──────────────────────────────────────────────────────────
