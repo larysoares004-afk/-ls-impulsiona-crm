@@ -2,6 +2,13 @@ require('dotenv').config();
 const express    = require('express');
 let webpush; try { webpush = require('web-push'); } catch(e) { webpush = null; }
 let _WasmDB = null;
+// Carregar driver SQLite — tenta better-sqlite3 primeiro (nativo, mais rápido),
+// depois node-sqlite3-wasm (WASM, sem compilação nativa)
+try { _WasmDB = require('better-sqlite3'); } catch(_e1) {
+  try { _WasmDB = require('node-sqlite3-wasm').Database; } catch(_e2) {
+    console.error('❌ Nenhum driver SQLite disponível! Instale better-sqlite3 ou node-sqlite3-wasm');
+  }
+}
 // Shim: aceita args variádicos como better-sqlite3
 function Database(path) {
   if (!_WasmDB) throw new Error('sqlite3 not available');

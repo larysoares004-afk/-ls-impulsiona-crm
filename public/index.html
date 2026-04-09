@@ -1774,6 +1774,11 @@ function _executarLogin() {
           _salvarToken(d.token);
           currentUser = d.user;
           currentUser.permissoes = PERMISSOES[d.user.role] || [];
+          currentUser.token = d.token; // token disponível em currentUser para fallback
+          // Atualizar sessionStorage com o token real (entrarComUser pode ter salvo sem)
+          try { sessionStorage.setItem('alliance_sess', JSON.stringify({
+            usuario: currentUser.usuario, expira: Date.now()+8*3600*1000, offline:false, token: d.token
+          })); } catch(e){}
           // Sincroniza dados reais e re-renderiza a aba atual
           sincronizarDados().catch(function(){});
         } else {
