@@ -2404,7 +2404,16 @@ function voltarTela() {
   _goToSemHistorico(anterior);
   _atualizarBtnVoltar();
 }
+// Remove todos os modais dinâmicos (fixed-overlay) que possam estar bloqueando cliques
+function _limparModaisDinamicos() {
+  document.querySelectorAll('[id^="transferModal_"],[id^="transferInstagramModal_"]').forEach(el => el.remove());
+  ['_modalRanking','_modalNovoAtend','_modalRemAtend'].forEach(function(id){ document.getElementById(id)?.remove(); });
+  // Garantir que sbOverlay não fique preso como aberto
+  document.getElementById('sbOverlay')?.classList.remove('open');
+}
+
 function _goToSemHistorico(tab) {
+  _limparModaisDinamicos();
   if(window.innerWidth <= 900) closeMobileMenu();
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   var view = document.getElementById('view-' + tab);
@@ -2437,6 +2446,8 @@ function goTo(tab) {
   }
   // Fechar menu mobile ao navegar — threshold 900px igual ao breakpoint do CSS
   if (window.innerWidth <= 900) closeMobileMenu();
+  // Limpar modais dinâmicos que possam estar cobrindo a tela
+  _limparModaisDinamicos();
   // Parar timers de chat quando sai de atendimentos
   if (uiState.currentTab === 'atendimentos' && tab !== 'atendimentos') {
     if (window._metaPollTimer)      { clearInterval(window._metaPollTimer);      window._metaPollTimer = null; }
@@ -4685,6 +4696,8 @@ function sendMsg(){
 }
 
 function finalizeChat(){
+  // Limpar qualquer modal dinâmico aberto (evita bloqueio de cliques)
+  _limparModaisDinamicos();
   // Parar timers do chat ativo
   if (window._metaPollTimer)      { clearInterval(window._metaPollTimer);      window._metaPollTimer = null; }
   if (window._baileysPollTimer)   { clearInterval(window._baileysPollTimer);   window._baileysPollTimer = null; }
@@ -7798,7 +7811,7 @@ function _esc(s) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
 <!-- Dashboard v2 -->
-<script src="/dashboard-v2.js?v=20260409"></script>
+<script src="/dashboard-v2.js?v=20260409b"></script>
 
 </body>
 </html>

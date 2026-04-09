@@ -779,11 +779,16 @@ async function atualizarStatusIndicacao(id, status) {
 
 async function renderRanking() {
   let ranking = [];
+  let rankingErro = '';
   try {
     const res = await _api('/api/ranking');
     ranking = await res.json();
     if (!Array.isArray(ranking)) ranking = [];
-  } catch(e) { ranking = []; }
+  } catch(e) {
+    ranking = [];
+    rankingErro = e.message || 'Erro ao carregar ranking';
+    if (typeof toast === 'function') toast('Erro ao carregar ranking — ' + rankingErro, 'error');
+  }
 
   const isAdmin = typeof currentUser !== 'undefined' && currentUser && ['admin','gestor'].includes(currentUser.role);
   const medalhas = ['🥇', '🥈', '🥉'];
@@ -826,7 +831,7 @@ async function renderRanking() {
                 </td>
                 ${isAdmin ? `<td style="padding:12px;display:flex;gap:6px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="editarPontosRanking(${r.id},'${r.nome}',${r.pontos},${r.vendas})">Editar</button><button class="btn" style="font-size:11px;padding:4px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer" onclick="removerAtendente(${r.id},'${r.nome}')">✕</button></td>` : ''}
               </tr>
-            `).join('') || '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--z400)">Sem dados de ranking</td></tr>'}
+            `).join('') || `<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--z400)">${rankingErro ? '⚠️ ' + rankingErro : 'Nenhum atendente cadastrado — clique em + Novo Atendente'}</td></tr>`}
           </tbody>
         </table>
       </div>
