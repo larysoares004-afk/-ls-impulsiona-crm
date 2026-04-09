@@ -1721,8 +1721,13 @@ function entrarComUser(user, offline) {
   currentUser = {...user};
   delete currentUser.senha;
   currentUser.permissoes = PERMISSOES[user.role] || [];
+  // CRÍTICO: preservar o token que já estava salvo no sessionStorage (bug anterior sobrescrevia sem token)
+  var tokenExistente = null;
+  try { var _ss = JSON.parse(sessionStorage.getItem('alliance_sess') || '{}'); tokenExistente = _ss.token || null; } catch(e){}
+  if (!tokenExistente) try { tokenExistente = localStorage.getItem('alliance_token') || null; } catch(e){}
+  currentUser.token = tokenExistente; // token disponível em currentUser.token como fallback
   sessionStorage.setItem('alliance_sess', JSON.stringify({
-    usuario: user.usuario, expira: Date.now()+8*3600*1000, offline
+    usuario: user.usuario, expira: Date.now()+8*3600*1000, offline: offline, token: tokenExistente
   }));
   const ls = document.getElementById('loginScreen');
   if(ls){ ls.style.opacity='0'; ls.style.transition='opacity .4s'; setTimeout(()=>ls.style.display='none',400); }
@@ -1799,6 +1804,7 @@ function _executarLogin() {
     if (!res.ok) { erro(res.d.error || 'Usuário ou senha incorretos'); return; }
     currentUser = res.d.user;
     currentUser.permissoes = PERMISSOES[res.d.user.role] || [];
+    currentUser.token = res.d.token || null; // token no currentUser para fallback
     // Salvar token em sessionStorage + localStorage (persiste no iOS)
     if (res.d.token) _salvarToken(res.d.token);
     sessionStorage.setItem('alliance_sess', JSON.stringify({
@@ -1862,6 +1868,7 @@ function checkSession() {
       currentUser = {...user};
       delete currentUser.senha;
       currentUser.permissoes = PERMISSOES[user.role] || [];
+      currentUser.token = s.token || _getAuthToken() || null; // preservar token no currentUser
       // Tentar atualizar do backend em background (user + dados reais)
       if (!s.offline && _getAuthToken()) {
         backendDisponivel().then(online => {
@@ -7816,7 +7823,7 @@ function _esc(s) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 
 <!-- Dashboard v2 -->
-<script src="/dashboard-v2.js?v=20260409c"></script>
+<script src="/dashboard-v2.js?v=20260409d"></script>
 
 </body>
 </html>

@@ -538,11 +538,12 @@ function auth(req, res, next) {
   // CRÍTICO: não usar ||, pois se o cookie existir mas for inválido (expirado), o || nunca
   // chegaria ao header, deixando o usuário preso em 401 mesmo com token válido no localStorage.
   let verified = null;
+  let cookieOk = false;
   const cookieToken = req.cookies?.crm_token;
   const headerToken = (req.headers.authorization || '').replace('Bearer ', '').trim();
 
   if (cookieToken) {
-    try { verified = jwt.verify(cookieToken, JWT_SECRET); } catch(_e) { /* inválido/expirado */ }
+    try { verified = jwt.verify(cookieToken, JWT_SECRET); cookieOk = true; } catch(_e) { /* inválido/expirado */ }
   }
   if (!verified && headerToken) {
     try { verified = jwt.verify(headerToken, JWT_SECRET); } catch(_e) { /* inválido/expirado */ }
@@ -552,7 +553,21 @@ function auth(req, res, next) {
     if (cookieToken) res.clearCookie('crm_token'); // limpa cookie inválido
     return res.status(401).json({ error: 'Não autenticado' });
   }
+
   req.user = verified;
+
+  // Auto-heal: se o cookie estava ausente/expirado mas o header token é válido,
+  // recriar o cookie automaticamente — evita que o usuário fique sem cookie silenciosamente
+  if (!cookieOk && headerToken) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('crm_token', headerToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 30 * 24 * 3600 * 1000,
+    });
+  }
+
   next();
 }
 

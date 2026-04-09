@@ -175,18 +175,27 @@ async function renderDashboardV2() {
   }
 }
 
-// Helper para fetch com token
+// Helper para fetch com token — usa _getAuthToken() do index.html como fonte primária
 function _api(url, opts) {
-  // Busca o token: tenta sessionStorage primeiro (como api() do index.html), depois localStorage
-  let token = '';
-  try {
-    const s = JSON.parse(sessionStorage.getItem('alliance_sess') || 'null');
-    if (s && s.token) token = s.token;
-  } catch(e) {}
+  var token = '';
+  // 1. Fonte primária: _getAuthToken() global (index.html) — lê sessionStorage + localStorage
+  if (typeof _getAuthToken === 'function') {
+    token = _getAuthToken() || '';
+  }
+  // 2. Fallback: currentUser.token (salvo no login e checkSession)
+  if (!token && typeof currentUser !== 'undefined' && currentUser && currentUser.token) {
+    token = currentUser.token;
+  }
+  // 3. Fallback direto: sessionStorage
   if (!token) {
-    token = (typeof currentUser !== 'undefined' && currentUser && currentUser.token)
-      ? currentUser.token
-      : (typeof localStorage !== 'undefined' ? (localStorage.getItem('alliance_token') || '') : '');
+    try {
+      var s = JSON.parse(sessionStorage.getItem('alliance_sess') || 'null');
+      if (s && s.token) token = s.token;
+    } catch(e) {}
+  }
+  // 4. Fallback direto: localStorage
+  if (!token) {
+    try { token = localStorage.getItem('alliance_token') || ''; } catch(e) {}
   }
   return fetch(url, {
     credentials: 'include',
@@ -198,7 +207,6 @@ function _api(url, opts) {
     }
   }).then(function(res) {
     if (!res.ok) {
-      // Lança erro para que os blocos try/catch dos chamadores usem o valor padrão (array vazio, etc.)
       return res.json().catch(function(){ return {}; }).then(function(d) {
         throw new Error(d.error || d.erro || ('Erro HTTP ' + res.status));
       });
