@@ -1617,48 +1617,11 @@ app.post('/api/script/sugerir', async (req, res) => {
     if (!mensagem) return res.status(400).json({ erro: 'mensagem obrigatória' });
 
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-    if (!ANTHROPIC_KEY) {
-      // Fallback persuasivo por contexto — cobre as principais objeções e situações de venda
-      const msg = mensagem.toLowerCase();
-      const n = nome || '[Nome]';
-      let resposta = '';
 
-      if (msg.includes('confiar') || msg.includes('seguro') || msg.includes('confiança') || msg.includes('duvida') || msg.includes('dúvida')) {
-        resposta = `Excelente pergunta, ${n} — e te respeito demais por fazer ela.\n\nA LS Impulsiona não existe há anos por acidente. Trabalhamos com um número limitado de clientes justamente para que cada um tenha atenção total da nossa equipe.\n\nO que me diferencia de qualquer freelancer: você tem acesso direto aos resultados em tempo real. Sem letra miúda, sem surpresa no boleto. Seu dinheiro de anúncio vai direto para o Meta/Google — você vê tudo.\n\nMe conta: qual é a sua maior preocupação antes de dar esse passo?`;
-      } else if (msg.includes('como funciona') || msg.includes('como é') || msg.includes('o que faz') || msg.includes('o que inclui') || msg.includes('o que vou ter')) {
-        resposta = `Ótimo que você perguntou, ${n}! Deixa eu te explicar exatamente o que acontece:\n\n✅ Criamos os anúncios do zero — copy, imagem ou vídeo, tudo pensado para a dor do seu cliente ideal\n✅ Configuramos a segmentação cirúrgica para atingir quem tem o problema que você resolve\n✅ Otimizamos as campanhas toda semana com base nos dados reais\n✅ Você recebe relatório completo e tem acesso à conta a qualquer hora\n\nTudo isso por R$ 799,90/mês. O investimento em anúncio fica separado e vai direto para o Meta — sem intermediário.\n\nQual é o seu negócio? Assim te mostro como aplicaria na prática.`;
-      } else if (msg.includes('caro') || msg.includes('custa') || msg.includes('valor') || msg.includes('prec') || msg.includes('desconto') || msg.includes('barato')) {
-        resposta = `${n}, vou ser direto porque respeito o seu tempo.\n\nR$ 799,90 é R$ 26 por dia. Um único cliente novo cobre isso e ainda sobra lucro.\n\nComparado com alternativas: um funcionário CLT custa R$ 2.500+ com encargos. Um freelancer "barato" vai te custar o dobro em anúncio desperdiçado porque não tem método.\n\nA questão real não é o custo — é o retorno. E tráfego pago bem feito tem o melhor ROI do marketing digital.\n\nMe conta: qual produto ou serviço você vende e quanto vale um cliente para você?`;
-      } else if (msg.includes('não funcio') || msg.includes('tentei') || msg.includes('nao funcionou') || msg.includes('não deu') || msg.includes('ja fiz') || msg.includes('já fiz') || msg.includes('antes') || msg.includes('outra agência') || msg.includes('outra agencia')) {
-        resposta = `${n}, isso é o que eu ouço com mais frequência — e sempre tem um motivo claro.\n\nTráfego pago sem método é dinheiro no lixo. Me conta: quando você tentou antes, o anúncio tinha uma mensagem específica para a DOR do seu cliente? Ou era "conheça nosso trabalho / acesse nosso site"?\n\n[Pausa para resposta]\n\nÉ exatamente esse o ponto. A maioria das agências roda "impulsionamento". A gente constrói um funil: anúncio certo → pessoa certa → momento certo → ação.\n\nQuer que eu te mostre como seria para o seu nicho especificamente?`;
-      } else if (msg.includes('tempo') || msg.includes('ocupad') || msg.includes('não tenho') || msg.includes('nao tenho') || msg.includes('corrido')) {
-        resposta = `${n}, essa é a razão número 1 pelo qual donos de negócio me contratam.\n\nVocê não deveria ter tempo pra isso — o seu tempo vale caro demais para ficar mexendo em painel de anúncio.\n\nA gente assume tudo: criação, segmentação, testes A/B, otimização, relatório. Você só recebe os leads no WhatsApp e fecha os negócios.\n\nUm check-in semanal de 10 minutos comigo é tudo que você vai precisar.\n\nFaz sentido pra você?`;
-      } else if (msg.includes('pensar') || msg.includes('refletir') || msg.includes('sócio') || msg.includes('socio') || msg.includes('esposa') || msg.includes('marido') || msg.includes('esposo') || msg.includes('avaliar')) {
-        resposta = `Claro, ${n} — e eu não quero te pressionar, quero que você tome a melhor decisão.\n\nPra te ajudar nessa conversa: qual é a principal dúvida que vai surgir? Preço? Resultado? Funcionamento?\n\nMe fala e eu já te mando os dados exatos pra você ter na mão.\n\nSó preciso te avisar: trabalho com agenda controlada — máximo 5 novos clientes por semana pra garantir qualidade. Se essa semana fechar, posso te garantir entrada imediata. Do contrário, entra numa fila de espera.\n\nAté quando você consegue dar uma resposta?`;
-      } else if (msg.includes('garantia') || msg.includes('garante') || msg.includes('resultado') || msg.includes('retorno') || msg.includes('roi')) {
-        resposta = `${n}, honestidade em primeiro lugar: nenhuma agência SÉRIA garante X vendas — porque isso depende do seu produto, preço e atendimento também. Desconfie de quem promete número.\n\nO que eu garanto: estratégia profissional, criação de qualidade, otimização semanal, e transparência total — você vê cada centavo sendo gasto.\n\nE na prática: clientes que seguem as recomendações e têm um bom produto geralmente veem retorno a partir do 2º mês.\n\nO que exatamente você quer gerar com os anúncios — leads, vendas diretas ou visibilidade?`;
-      } else if (msg.includes('incluso') || msg.includes('inclui') || msg.includes('anúncio') || msg.includes('anuncio') || msg.includes('orçamento') || msg.includes('orcamento') || msg.includes('separado')) {
-        resposta = `Boa pergunta, ${n} — muita gente tem essa dúvida e é importante esclarecer.\n\nOs R$ 799,90 são exclusivamente a taxa de gestão e estratégia — o trabalho da nossa equipe.\n\nO investimento em anúncios é separado e vai DIRETO para o Meta/Google na sua conta. Zero intermediário, zero margem nossa em cima. Você tem controle total.\n\nBônus: justamente por não ter interesse no seu orçamento de mídia, nossas recomendações são sempre o que é melhor para o SEU resultado.\n\nQual seria o valor que você pensou em investir em anúncios por mês?`;
-      } else if (msg.includes('diferente') || msg.includes('diferença') || msg.includes('por que vocês') || msg.includes('porque vocês') || msg.includes('melhor que') || msg.includes('outros')) {
-        resposta = `${n}, vou te dizer o que nos diferencia de verdade.\n\n1️⃣ Copywriting real: cada anúncio tem um texto pensado para a dor específica do seu cliente, não post genérico\n2️⃣ Quantidade controlada: poucos clientes = atenção total para cada um\n3️⃣ Transparência: você tem acesso a tudo — conta, relatório, dados, sem segredo\n4️⃣ Resultado mensurável: se não está gerando retorno, a gente ajusta a estratégia, não fica empurrando o mesmo anúncio\n\nMe conta mais sobre o seu negócio — quem é seu cliente ideal?`;
-      } else if (msg.includes('funciona para') || msg.includes('meu nicho') || msg.includes('minha área') || msg.includes('tipo de negócio') || msg.includes('meu negocio') || msg.includes('meu negócio')) {
-        resposta = `${n}, essa é a pergunta certa.\n\nTráfego pago funciona para qualquer negócio que resolve um problema real — e o que muda é a estratégia, não o princípio.\n\nPara produtos/serviços locais: segmentamos por raio, horário e perfil. Para infoprodutos: funil de captura. Para serviços B2B: LinkedIn + Meta com qualificação.\n\nMe conta: qual é o seu negócio e quem é o cliente que você quer atrair? Com essa informação te mostro exatamente como montaríamos a campanha.`;
-      } else if (msg.includes('prazo') || msg.includes('quanto tempo') || msg.includes('quando') || msg.includes('começa') || msg.includes('início') || msg.includes('inicio')) {
-        resposta = `${n}, ótima pergunta — e aqui o processo é rápido.\n\nAssim que você confirma:\n📋 Briefing rápido (15 min) para entender seu negócio\n🎨 Em 2-3 dias úteis: primeiros anúncios criados e campanha configurada\n🚀 Campanha no ar e gerando leads\n\nNos primeiros 7-14 dias fazemos os ajustes iniciais com base nos dados reais. A partir daí, otimização semanal contínua.\n\nQuer garantir a sua vaga essa semana?`;
-      } else {
-        // Resposta contextual para qualquer outra mensagem
-        const respostasGenericas = [
-          `${n}, me conta um pouco mais sobre isso.\n\nQual é o maior desafio do seu negócio hoje — falta de visibilidade, falta de leads ou dificuldade em converter?\n\nCom essa informação consigo te mostrar exatamente como o tráfego pago resolve esse ponto específico.`,
-          `Entendo, ${n}. Antes de te dar uma resposta genérica, quero entender sua situação real.\n\nMe diz: você já investe em algum tipo de divulgação hoje? Redes sociais, panfleto, indicação?\n\nAssim consigo te mostrar o que o tráfego pago pode ACRESCENTAR ao que você já faz.`,
-          `${n}, boa pergunta. Deixa eu te perguntar uma coisa primeiro.\n\nSe você tivesse 10 novos clientes chegando por mês pelo WhatsApp de forma previsível, como isso mudaria o seu negócio?\n\nPorque é exatamente isso que o tráfego pago bem feito entrega.`
-        ];
-        resposta = respostasGenericas[Math.floor(Math.random() * respostasGenericas.length)];
-      }
-      return res.json({ resposta, via: 'fallback' });
-    }
-
-    // Usar Claude API
-    const sistemPrompt = `Você é um especialista em vendas da LS Impulsiona, agência de gestão de tráfego pago. Seu único objetivo é converter leads em clientes pagantes do plano de R$ 799,90/mês.
+    // Tentar Claude API primeiro (se chave disponível)
+    if (ANTHROPIC_KEY) {
+      try {
+        const sistemPrompt = `Você é um especialista em vendas da LS Impulsiona, agência de gestão de tráfego pago. Seu único objetivo é converter leads em clientes pagantes do plano de R$ 799,90/mês.
 
 PRODUTO:
 - Gestão completa de Meta Ads (Facebook/Instagram) e Google Ads
@@ -1687,36 +1650,81 @@ REGRAS ABSOLUTAS:
 8. Se mencionar tentativa anterior: use como gancho para mostrar diferença de método
 9. Se pedir confiança/garantia: seja honesto e mostre transparência como diferencial`;
 
-    const userContent = nome
-      ? `Contexto: estou vendendo gestão de tráfego pago por R$ 799,90/mês.\n\nO cliente ${nome} disse: "${mensagem}"\n\nEscreva uma resposta persuasiva e específica para ESSA mensagem. Não seja genérico. Adapte ao que o cliente disse.`
-      : `Contexto: estou vendendo gestão de tráfego pago por R$ 799,90/mês.\n\nO cliente disse: "${mensagem}"\n\nEscreva uma resposta persuasiva e específica para ESSA mensagem. Não seja genérico. Adapte ao que o cliente disse.`;
+        const userContent = nome
+          ? `Contexto: estou vendendo gestão de tráfego pago por R$ 799,90/mês.\n\nO cliente ${nome} disse: "${mensagem}"\n\nEscreva uma resposta persuasiva e específica para ESSA mensagem. Não seja genérico. Adapte ao que o cliente disse.`
+          : `Contexto: estou vendendo gestão de tráfego pago por R$ 799,90/mês.\n\nO cliente disse: "${mensagem}"\n\nEscreva uma resposta persuasiva e específica para ESSA mensagem. Não seja genérico. Adapte ao que o cliente disse.`;
 
-    const messages = [];
-    if (historico && Array.isArray(historico)) {
-      historico.slice(-10).forEach(h => {
-        messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
-      });
+        const messages = [];
+        if (historico && Array.isArray(historico)) {
+          historico.slice(-10).forEach(h => {
+            messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
+          });
+        }
+        messages.push({ role: 'user', content: userContent });
+
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-haiku-20241022',
+            max_tokens: 600,
+            system: sistemPrompt,
+            messages
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error?.message || 'Erro na API Anthropic');
+        const resposta = data.content?.[0]?.text || '';
+        if (resposta) return res.json({ resposta, via: 'claude' });
+        throw new Error('Resposta vazia da API');
+      } catch(aiErr) {
+        // API falhou — registra e cai no fallback local abaixo
+        console.warn('⚠️ Anthropic API falhou, usando fallback local:', aiErr.message);
+      }
     }
-    messages.push({ role: 'user', content: userContent });
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        system: sistemPrompt,
-        messages
-      })
-    });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || 'Erro na API Anthropic');
-    const resposta = data.content?.[0]?.text || 'Não foi possível gerar resposta.';
-    res.json({ resposta, via: 'claude' });
+    // ── Fallback persuasivo por contexto ──────────────────────────────────────
+    // Cobre as principais objeções e situações de venda sem depender de IA externa
+    const msg = mensagem.toLowerCase();
+    const n = nome || '[Nome]';
+    let resposta = '';
+
+    if (msg.includes('confiar') || msg.includes('seguro') || msg.includes('confiança') || msg.includes('duvida') || msg.includes('dúvida')) {
+      resposta = `Excelente pergunta, ${n} — e te respeito demais por fazer ela.\n\nA LS Impulsiona não existe há anos por acidente. Trabalhamos com um número limitado de clientes justamente para que cada um tenha atenção total da nossa equipe.\n\nO que me diferencia de qualquer freelancer: você tem acesso direto aos resultados em tempo real. Sem letra miúda, sem surpresa no boleto. Seu dinheiro de anúncio vai direto para o Meta/Google — você vê tudo.\n\nMe conta: qual é a sua maior preocupação antes de dar esse passo?`;
+    } else if (msg.includes('como funciona') || msg.includes('como é') || msg.includes('o que faz') || msg.includes('o que inclui') || msg.includes('o que vou ter')) {
+      resposta = `Ótimo que você perguntou, ${n}! Deixa eu te explicar exatamente o que acontece:\n\n✅ Criamos os anúncios do zero — copy, imagem ou vídeo, tudo pensado para a dor do seu cliente ideal\n✅ Configuramos a segmentação cirúrgica para atingir quem tem o problema que você resolve\n✅ Otimizamos as campanhas toda semana com base nos dados reais\n✅ Você recebe relatório completo e tem acesso à conta a qualquer hora\n\nTudo isso por R$ 799,90/mês. O investimento em anúncio fica separado e vai direto para o Meta — sem intermediário.\n\nQual é o seu negócio? Assim te mostro como aplicaria na prática.`;
+    } else if (msg.includes('caro') || msg.includes('custa') || msg.includes('valor') || msg.includes('prec') || msg.includes('desconto') || msg.includes('barato')) {
+      resposta = `${n}, vou ser direto porque respeito o seu tempo.\n\nR$ 799,90 é R$ 26 por dia. Um único cliente novo cobre isso e ainda sobra lucro.\n\nComparado com alternativas: um funcionário CLT custa R$ 2.500+ com encargos. Um freelancer "barato" vai te custar o dobro em anúncio desperdiçado porque não tem método.\n\nA questão real não é o custo — é o retorno. E tráfego pago bem feito tem o melhor ROI do marketing digital.\n\nMe conta: qual produto ou serviço você vende e quanto vale um cliente para você?`;
+    } else if (msg.includes('não funcio') || msg.includes('tentei') || msg.includes('nao funcionou') || msg.includes('não deu') || msg.includes('ja fiz') || msg.includes('já fiz') || msg.includes('antes') || msg.includes('outra agência') || msg.includes('outra agencia')) {
+      resposta = `${n}, isso é o que eu ouço com mais frequência — e sempre tem um motivo claro.\n\nTráfego pago sem método é dinheiro no lixo. Me conta: quando você tentou antes, o anúncio tinha uma mensagem específica para a DOR do seu cliente? Ou era "conheça nosso trabalho / acesse nosso site"?\n\n[Pausa para resposta]\n\nÉ exatamente esse o ponto. A maioria das agências roda "impulsionamento". A gente constrói um funil: anúncio certo → pessoa certa → momento certo → ação.\n\nQuer que eu te mostre como seria para o seu nicho especificamente?`;
+    } else if (msg.includes('tempo') || msg.includes('ocupad') || msg.includes('não tenho') || msg.includes('nao tenho') || msg.includes('corrido')) {
+      resposta = `${n}, essa é a razão número 1 pelo qual donos de negócio me contratam.\n\nVocê não deveria ter tempo pra isso — o seu tempo vale caro demais para ficar mexendo em painel de anúncio.\n\nA gente assume tudo: criação, segmentação, testes A/B, otimização, relatório. Você só recebe os leads no WhatsApp e fecha os negócios.\n\nUm check-in semanal de 10 minutos comigo é tudo que você vai precisar.\n\nFaz sentido pra você?`;
+    } else if (msg.includes('pensar') || msg.includes('refletir') || msg.includes('sócio') || msg.includes('socio') || msg.includes('esposa') || msg.includes('marido') || msg.includes('esposo') || msg.includes('avaliar')) {
+      resposta = `Claro, ${n} — e eu não quero te pressionar, quero que você tome a melhor decisão.\n\nPra te ajudar nessa conversa: qual é a principal dúvida que vai surgir? Preço? Resultado? Funcionamento?\n\nMe fala e eu já te mando os dados exatos pra você ter na mão.\n\nSó preciso te avisar: trabalho com agenda controlada — máximo 5 novos clientes por semana pra garantir qualidade. Se essa semana fechar, posso te garantir entrada imediata. Do contrário, entra numa fila de espera.\n\nAté quando você consegue dar uma resposta?`;
+    } else if (msg.includes('garantia') || msg.includes('garante') || msg.includes('resultado') || msg.includes('retorno') || msg.includes('roi')) {
+      resposta = `${n}, honestidade em primeiro lugar: nenhuma agência SÉRIA garante X vendas — porque isso depende do seu produto, preço e atendimento também. Desconfie de quem promete número.\n\nO que eu garanto: estratégia profissional, criação de qualidade, otimização semanal, e transparência total — você vê cada centavo sendo gasto.\n\nE na prática: clientes que seguem as recomendações e têm um bom produto geralmente veem retorno a partir do 2º mês.\n\nO que exatamente você quer gerar com os anúncios — leads, vendas diretas ou visibilidade?`;
+    } else if (msg.includes('incluso') || msg.includes('inclui') || msg.includes('anúncio') || msg.includes('anuncio') || msg.includes('orçamento') || msg.includes('orcamento') || msg.includes('separado')) {
+      resposta = `Boa pergunta, ${n} — muita gente tem essa dúvida e é importante esclarecer.\n\nOs R$ 799,90 são exclusivamente a taxa de gestão e estratégia — o trabalho da nossa equipe.\n\nO investimento em anúncios é separado e vai DIRETO para o Meta/Google na sua conta. Zero intermediário, zero margem nossa em cima. Você tem controle total.\n\nBônus: justamente por não ter interesse no seu orçamento de mídia, nossas recomendações são sempre o que é melhor para o SEU resultado.\n\nQual seria o valor que você pensou em investir em anúncios por mês?`;
+    } else if (msg.includes('diferente') || msg.includes('diferença') || msg.includes('por que vocês') || msg.includes('porque vocês') || msg.includes('melhor que') || msg.includes('outros')) {
+      resposta = `${n}, vou te dizer o que nos diferencia de verdade.\n\n1️⃣ Copywriting real: cada anúncio tem um texto pensado para a dor específica do seu cliente, não post genérico\n2️⃣ Quantidade controlada: poucos clientes = atenção total para cada um\n3️⃣ Transparência: você tem acesso a tudo — conta, relatório, dados, sem segredo\n4️⃣ Resultado mensurável: se não está gerando retorno, a gente ajusta a estratégia, não fica empurrando o mesmo anúncio\n\nMe conta mais sobre o seu negócio — quem é seu cliente ideal?`;
+    } else if (msg.includes('funciona para') || msg.includes('meu nicho') || msg.includes('minha área') || msg.includes('tipo de negócio') || msg.includes('meu negocio') || msg.includes('meu negócio')) {
+      resposta = `${n}, essa é a pergunta certa.\n\nTráfego pago funciona para qualquer negócio que resolve um problema real — e o que muda é a estratégia, não o princípio.\n\nPara produtos/serviços locais: segmentamos por raio, horário e perfil. Para infoprodutos: funil de captura. Para serviços B2B: LinkedIn + Meta com qualificação.\n\nMe conta: qual é o seu negócio e quem é o cliente que você quer atrair? Com essa informação te mostro exatamente como montaríamos a campanha.`;
+    } else if (msg.includes('prazo') || msg.includes('quanto tempo') || msg.includes('quando') || msg.includes('começa') || msg.includes('início') || msg.includes('inicio')) {
+      resposta = `${n}, ótima pergunta — e aqui o processo é rápido.\n\nAssim que você confirma:\n📋 Briefing rápido (15 min) para entender seu negócio\n🎨 Em 2-3 dias úteis: primeiros anúncios criados e campanha configurada\n🚀 Campanha no ar e gerando leads\n\nNos primeiros 7-14 dias fazemos os ajustes iniciais com base nos dados reais. A partir daí, otimização semanal contínua.\n\nQuer garantir a sua vaga essa semana?`;
+    } else {
+      // Resposta contextual para qualquer outra mensagem
+      const respostasGenericas = [
+        `${n}, me conta um pouco mais sobre isso.\n\nQual é o maior desafio do seu negócio hoje — falta de visibilidade, falta de leads ou dificuldade em converter?\n\nCom essa informação consigo te mostrar exatamente como o tráfego pago resolve esse ponto específico.`,
+        `Entendo, ${n}. Antes de te dar uma resposta genérica, quero entender sua situação real.\n\nMe diz: você já investe em algum tipo de divulgação hoje? Redes sociais, panfleto, indicação?\n\nAssim consigo te mostrar o que o tráfego pago pode ACRESCENTAR ao que você já faz.`,
+        `${n}, boa pergunta. Deixa eu te perguntar uma coisa primeiro.\n\nSe você tivesse 10 novos clientes chegando por mês pelo WhatsApp de forma previsível, como isso mudaria o seu negócio?\n\nPorque é exatamente isso que o tráfego pago bem feito entrega.`
+      ];
+      resposta = respostasGenericas[Math.floor(Math.random() * respostasGenericas.length)];
+    }
+    return res.json({ resposta, via: 'fallback' });
   } catch(e) {
     console.error('❌ Erro script/sugerir:', e.message);
     res.status(500).json({ erro: e.message });
