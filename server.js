@@ -1692,7 +1692,6 @@ REGRAS ABSOLUTAS:
       : `Contexto: estou vendendo gestão de tráfego pago por R$ 799,90/mês.\n\nO cliente disse: "${mensagem}"\n\nEscreva uma resposta persuasiva e específica para ESSA mensagem. Não seja genérico. Adapte ao que o cliente disse.`;
 
     const messages = [];
-    const messages = [];
     if (historico && Array.isArray(historico)) {
       historico.slice(-10).forEach(h => {
         messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
