@@ -983,28 +983,19 @@ select.inp{cursor:pointer}
     <div><div class="ptitle">Conexões</div><div class="psub">Conecte seu WhatsApp via QR Code — gratuito</div></div>
   </div>
 
-  <!-- Card QR Gratuito (Baileys) -->
-  <div class="card" style="margin-bottom:24px;max-width:520px">
+  <!-- Cards WhatsApp QR — múltiplas conexões Baileys -->
+  <div class="card" style="margin-bottom:24px">
     <div class="card-hdr">
       <div>
         <div class="card-title" style="display:flex;align-items:center;gap:8px">
           <span style="font-size:20px">📱</span> WhatsApp QR Code
         </div>
-        <div class="card-sub">Conecte seu número escaneando o QR — 100% gratuito</div>
+        <div class="card-sub">Conecte vários números simultaneamente — 100% gratuito</div>
       </div>
-      <div id="wppQrStatusBadge" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b">Desconectado</div>
+      <button class="btn btn-primary" style="font-size:12px" onclick="adicionarConexaoBaileys()">+ Adicionar Número</button>
     </div>
-    <div class="card-body">
-      <div id="wppQrArea" style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 0">
-        <div id="wppQrImg" style="display:none;background:#fff;padding:12px;border-radius:12px;border:2px solid #e2e8f0"></div>
-        <div id="wppQrMsg" style="font-size:13px;color:#64748b;text-align:center">Clique em "Conectar" para gerar o QR Code</div>
-        <div id="wppQrNumber" style="display:none;font-size:14px;font-weight:700;color:#10b981"></div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-        <button id="btnConectarQR" onclick="conectarWppQR()" style="flex:1;min-width:120px;padding:11px;background:#25D366;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📲 Conectar</button>
-        <button id="btnAtualizarQR" onclick="conectarWppQR()" style="display:none;flex:1;min-width:120px;padding:11px;background:#f59e0b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🔄 Atualizar QR</button>
-        <button id="btnDesconectarQR" onclick="desconectarWppQR()" style="display:none;flex:1;min-width:120px;padding:11px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Desconectar</button>
-      </div>
+    <div id="wppConexoesList" style="padding:0 20px 20px">
+      <div style="text-align:center;padding:20px;color:var(--z400);font-size:12px">Carregando conexões...</div>
     </div>
   </div>
 
@@ -4144,20 +4135,6 @@ function getAttChats(canal) {
     });
   });
 
-  // Instagram — Meta Cloud API
-  (state.instagramConversas || []).forEach(c => {
-    const chatId = 'instagram-' + c.de;
-    if (seen.has(chatId)) return;
-    seen.add(chatId);
-    chats.push({
-      id: chatId, name: c.nome || '@' + (c.username || c.de), phone: c.de,
-      msg: c.ultima_msg || '', time: (c.ultima||'').slice(11,16),
-      unread: c.nao_lidas || 0, canal: 'instagram',
-      accountName: 'Instagram Direct', isInstagram: true,
-      status: 'active',
-    });
-  });
-
   // WhatsApp — Evolution API
   const connAccounts = state.wppAccounts.filter(w => w.status === 'connected');
   Object.entries(state.chatMsgs || {}).forEach(([chatId, msgs]) => {
@@ -4370,10 +4347,10 @@ async function _enviarMidiaBaileys(file) {
   fd.append('caption', '');
   try {
     const r = await fetch('/api/wpp-qr/send-media', { method: 'POST', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }, body: fd });
-    if (!r.ok) { const e = await r.json().catch(()=>({error:'Erro'})); showToast('❌ ' + (e.error||'Erro ao enviar mídia'), 'error'); return; }
-    showToast('✅ Mídia enviada!', 'success');
+    if (!r.ok) { const e = await r.json().catch(()=>({error:'Erro'})); toast('❌ ' + (e.error||'Erro ao enviar mídia'), 'error'); return; }
+    toast('✅ Mídia enviada!', 'success');
     await _carregarMsgsBaileys(num);
-  } catch(e) { showToast('❌ Erro: ' + e.message, 'error'); }
+  } catch(e) { toast('❌ Erro: ' + e.message, 'error'); }
 }
 
 // ── Enviar mídia via Meta Cloud API (WhatsApp oficial) ───────────────────────
@@ -7047,107 +7024,153 @@ async function renderVideosHoje() {
 }
 
 // ── WhatsApp QR Gratuito (Baileys) ────────────────────────────────────────────
-let _wppQrPollTimer = null;
+// ── Múltiplas conexões Baileys ────────────────────────────────────────────────
+const _wppQrPollTimers = {};
 
-function _wppQrSetUI(status, qr, number, erro) {
-  const badge = document.getElementById('wppQrStatusBadge');
-  const img   = document.getElementById('wppQrImg');
-  const msg   = document.getElementById('wppQrMsg');
-  const num   = document.getElementById('wppQrNumber');
-  const btnC  = document.getElementById('btnConectarQR');
-  const btnA  = document.getElementById('btnAtualizarQR');
-  const btnD  = document.getElementById('btnDesconectarQR');
-  if (!badge) return;
-
-  // Ocultar todos os botões primeiro
-  if (btnC) btnC.style.display = 'none';
-  if (btnA) btnA.style.display = 'none';
-  if (btnD) btnD.style.display = 'none';
-
-  if (status === 'connected') {
-    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#dcfce7;color:#16a34a';
-    badge.textContent = '✅ Conectado';
-    img.style.display = 'none';
-    msg.textContent = 'WhatsApp conectado com sucesso!';
-    if (number) { num.style.display='block'; num.textContent = '📞 +' + number; }
-    if (btnD) btnD.style.display = 'block';
-    clearInterval(_wppQrPollTimer);
-  } else if (status === 'qr') {
-    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#fef3c7;color:#d97706';
-    badge.textContent = '📱 Aguardando scan';
-    if (qr) { img.style.display='block'; img.innerHTML=`<img src="${qr}" style="width:240px;height:240px;border-radius:8px">`; }
-    msg.style.cssText = 'font-size:13px;color:#64748b;text-align:center;max-width:280px';
-    msg.innerHTML = '<strong>Abra o WhatsApp</strong> → Menu ⋮ → <strong>Aparelhos conectados</strong> → Conectar aparelho<br><span style="font-size:11px;color:#94a3b8;margin-top:4px;display:block">O QR expira em ~60 segundos</span>';
-    num.style.display = 'none';
-    if (btnA) btnA.style.display = 'block'; // Botão atualizar QR
-  } else if (status === 'connecting') {
-    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#e0f2fe;color:#0284c7';
-    badge.textContent = '⏳ Conectando...';
-    img.style.display = 'none';
-    msg.textContent = 'Gerando QR Code, aguarde 5-10 segundos...';
-  } else if (status === 'error') {
-    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#fee2e2;color:#dc2626';
-    badge.textContent = '❌ Erro';
-    img.style.display = 'none';
-    msg.style.cssText = 'font-size:13px;color:#dc2626;text-align:center;max-width:300px';
-    msg.innerHTML = '<strong>Falha ao conectar WhatsApp</strong><br><span style="font-size:12px;color:#64748b;display:block;margin-top:4px">' + (erro || 'Erro desconhecido. Tente novamente.') + '</span>';
-    num.style.display = 'none';
-    if (btnC) btnC.style.display = 'block';
-    clearInterval(_wppQrPollTimer);
-  } else {
-    badge.style.cssText = 'padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b';
-    badge.textContent = 'Desconectado';
-    img.style.display = 'none';
-    msg.textContent = 'Clique em "Conectar" para gerar o QR Code';
-    num.style.display = 'none';
-    if (btnC) btnC.style.display = 'block';
-    clearInterval(_wppQrPollTimer);
-  }
+function _connBadge(status) {
+  if (status === 'connected')  return 'background:#dcfce7;color:#16a34a';
+  if (status === 'qr')         return 'background:#fef3c7;color:#d97706';
+  if (status === 'connecting') return 'background:#e0f2fe;color:#0284c7';
+  if (status === 'error')      return 'background:#fee2e2;color:#dc2626';
+  return 'background:#f1f5f9;color:#64748b';
+}
+function _connBadgeText(status) {
+  if (status === 'connected')  return '✅ Conectado';
+  if (status === 'qr')         return '📱 Aguardando scan';
+  if (status === 'connecting') return '⏳ Conectando...';
+  if (status === 'error')      return '❌ Erro';
+  return 'Desconectado';
 }
 
-async function _wppQrPoll() {
+function _htmlConexaoBaileys(c) {
+  const id = c.id; const status = c.status || 'disconnected';
+  const removeBtn = id === 'conn_1' ? '' :
+    `<button onclick="removerConexaoBaileys('${id}')" style="padding:3px 8px;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">🗑</button>`;
+
+  let mainArea = '';
+  if (status === 'connected') {
+    mainArea = `<div style="font-size:13px;color:#16a34a;font-weight:600;padding:8px 0">WhatsApp conectado!<br><span style="font-size:14px;color:#10b981">📞 +${escHtml(c.phone||'')}</span></div>`;
+  } else if (status === 'qr' && c.qr) {
+    mainArea = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0">
+      <div style="background:#fff;padding:10px;border-radius:10px;border:2px solid #e2e8f0"><img src="${c.qr}" style="width:220px;height:220px;border-radius:6px"></div>
+      <div style="font-size:12px;color:#64748b;text-align:center;max-width:250px"><strong>Abra o WhatsApp</strong> → Menu ⋮ → <strong>Aparelhos conectados</strong> → Conectar aparelho<br><span style="font-size:10px;color:#94a3b8">QR expira em ~60s</span></div>
+    </div>`;
+  } else if (status === 'connecting') {
+    mainArea = `<div style="font-size:12px;color:#0284c7;padding:8px 0">Gerando QR Code, aguarde 5-10 segundos...</div>`;
+  } else if (status === 'error') {
+    mainArea = `<div style="font-size:12px;color:#dc2626;padding:8px 0">${escHtml(c.error||'Erro desconhecido. Tente novamente.')}</div>`;
+  } else {
+    mainArea = `<div style="font-size:12px;color:#64748b;padding:8px 0">Clique em "Conectar" para gerar o QR Code</div>`;
+  }
+
+  const connectBtn    = (status==='disconnected'||status==='error') ? `<button onclick="conectarConexaoBaileys('${id}')" style="padding:9px 16px;background:#25D366;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">📲 Conectar</button>` : '';
+  const refreshBtn    = (status==='qr'||status==='connecting') ? `<button onclick="conectarConexaoBaileys('${id}')" style="padding:9px 16px;background:#f59e0b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">🔄 Atualizar QR</button>` : '';
+  const disconnectBtn = status==='connected' ? `<button onclick="desconectarConexaoBaileys('${id}')" style="padding:9px 16px;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700">Desconectar</button>` : '';
+
+  return `<div id="conn-card-${id}" style="border:1px solid var(--z200);border-radius:12px;padding:16px;margin-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;font-size:14px">${escHtml(c.nome||id)}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;${_connBadge(status)}">${_connBadgeText(status)}</span>
+        ${removeBtn}
+      </div>
+    </div>
+    <div id="conn-area-${id}">${mainArea}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${connectBtn}${refreshBtn}${disconnectBtn}</div>
+  </div>`;
+}
+
+async function carregarConexoesBaileys() {
   try {
-    const d = await api('GET', '/api/wpp-qr/status');
-    _wppQrSetUI(d.status, d.qr, d.number, d.erro);
-    if (d.status === 'connected' || d.status === 'disconnected' || d.status === 'error') {
-      clearInterval(_wppQrPollTimer);
+    const conns = await api('GET', '/api/wpp-qr/conexoes');
+    const list = document.getElementById('wppConexoesList');
+    if (!list) return;
+    if (!conns || !conns.length) {
+      list.innerHTML = '<div style="padding:16px;color:var(--z400);font-size:12px;text-align:center">Nenhuma conexão encontrada.</div>';
+      return;
     }
+    list.innerHTML = conns.map(_htmlConexaoBaileys).join('');
+    conns.forEach(c => {
+      if (c.status === 'qr' || c.status === 'connecting') _startPollConn(c.id);
+    });
   } catch(e) {}
 }
 
-async function conectarWppQR() {
-  _wppQrSetUI('connecting');
+async function adicionarConexaoBaileys() {
   try {
-    const d = await api('POST', '/api/wpp-qr/connect');
-    _wppQrSetUI(d.status, d.qr, d.number, d.erro);
-    // Polling a cada 3s enquanto aguarda scan
-    clearInterval(_wppQrPollTimer);
-    _wppQrPollTimer = setInterval(_wppQrPoll, 3000);
+    await api('POST', '/api/wpp-qr/conexoes', { nome: 'WhatsApp QR' });
+    toast('Nova conexão criada! Clique em Conectar para escanear o QR.', 'success');
+    await carregarConexoesBaileys();
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function removerConexaoBaileys(id) {
+  const el = document.createElement('div');
+  el.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:340px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px">Remover conexão?</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:20px">A sessão será apagada e você precisará reconectar.</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="this.closest('[data-conf]').remove();removerConexaoBaileysConfirmar('${id}')" style="flex:1;padding:10px;background:#dc2626;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700">Remover</button>
+        <button onclick="this.closest('[data-conf]').remove()" style="flex:1;padding:10px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
+  </div>`;
+  el.setAttribute('data-conf','1');
+  document.body.appendChild(el);
+}
+async function removerConexaoBaileysConfirmar(id) {
+  try {
+    await api('DELETE', '/api/wpp-qr/conexoes/' + id);
+    _stopPollConn(id);
+    await carregarConexoesBaileys();
+    toast('Conexão removida', 'info');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function conectarConexaoBaileys(id) {
+  const areaEl = document.getElementById('conn-area-' + id);
+  if (areaEl) areaEl.innerHTML = '<div style="font-size:12px;color:#0284c7;padding:8px 0">Gerando QR Code, aguarde...</div>';
+  try {
+    const d = await api('POST', `/api/wpp-qr/conexoes/${id}/connect`);
+    await carregarConexoesBaileys();
+    if (d.status === 'qr' || d.status === 'connecting') _startPollConn(id);
   } catch(e) { toast('Erro ao conectar: ' + e.message, 'error'); }
 }
 
-async function desconectarWppQR() {
+async function desconectarConexaoBaileys(id) {
   try {
-    await api('POST', '/api/wpp-qr/disconnect');
-    _wppQrSetUI('disconnected');
+    await api('POST', `/api/wpp-qr/conexoes/${id}/disconnect`);
+    _stopPollConn(id);
+    await carregarConexoesBaileys();
     toast('WhatsApp desconectado', 'info');
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
 }
 
-// Ao abrir aba Conexões, verificar status atual
-const _origRenderWpp = typeof renderWpp === 'function' ? renderWpp : null;
-function renderWppComQR() {
-  if (_origRenderWpp) _origRenderWpp();
-  setTimeout(async () => {
+function _startPollConn(id) {
+  _stopPollConn(id);
+  _wppQrPollTimers[id] = setInterval(async () => {
     try {
-      const d = await api('GET', '/api/wpp-qr/status');
-      _wppQrSetUI(d.status, d.qr, d.number, d.erro);
-      if (d.status === 'qr' || d.status === 'connecting') {
-        clearInterval(_wppQrPollTimer);
-        _wppQrPollTimer = setInterval(_wppQrPoll, 3000);
-      }
+      const conns = await api('GET', '/api/wpp-qr/conexoes');
+      const c = (conns||[]).find(x => x.id === id);
+      if (!c) { _stopPollConn(id); return; }
+      const card = document.getElementById('conn-card-' + id);
+      if (card) { const tmp = document.createElement('div'); tmp.innerHTML = _htmlConexaoBaileys(c); card.replaceWith(tmp.firstChild); }
+      if (c.status === 'connected' || c.status === 'disconnected' || c.status === 'error') _stopPollConn(id);
     } catch(e) {}
-  }, 300);
+  }, 3000);
+}
+function _stopPollConn(id) {
+  if (_wppQrPollTimers[id]) { clearInterval(_wppQrPollTimers[id]); delete _wppQrPollTimers[id]; }
+}
+
+// Backwards compat
+async function conectarWppQR() { await conectarConexaoBaileys('conn_1'); }
+async function desconectarWppQR() { await desconectarConexaoBaileys('conn_1'); }
+
+function renderWppComQR() {
+  if (typeof renderWpp === 'function') renderWpp();
+  setTimeout(() => carregarConexoesBaileys(), 300);
 }
 </script>
 

@@ -2580,13 +2580,20 @@ setInterval(() => {
 }, 60 * 60 * 1000); // 1 hora
 
 // ════════════════════════════════════════════════════════════════════════════════
-// WHATSAPP QR — Baileys (gratuito, sem API paga)
+// WHATSAPP QR — Baileys (múltiplas conexões)
 // ════════════════════════════════════════════════════════════════════════════════
-const WPP_SESSION_DIR = process.env.WPP_SESSION_DIR || (process.platform === 'win32' ? path.join(__dirname, 'wpp-session') : '/data/wpp-session');
-let _wppSock = null;
-let _wppQR   = null;  // base64 da imagem QR
-let _wppStatus = 'disconnected'; // 'disconnected' | 'qr' | 'connecting' | 'connected' | 'error'
-let _wppError  = null; // último erro de conexão
+const WPP_SESSION_BASE = process.env.WPP_SESSION_DIR || (process.platform === 'win32' ? path.join(__dirname, 'wpp-session') : '/data/wpp-session');
+
+// Tabela de conexões Baileys
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS baileys_conexoes (
+    id TEXT PRIMARY KEY,
+    nome TEXT DEFAULT 'WhatsApp QR',
+    status TEXT DEFAULT 'disconnected',
+    phone TEXT,
+    criado_em TEXT DEFAULT (datetime('now','localtime'))
+  )`);
+} catch(e) {}
 
 const _silentLogger = {
   level: 'silent',
@@ -2595,29 +2602,54 @@ const _silentLogger = {
   debug: ()=>{}, trace: ()=>{}, fatal: ()=>{},
 };
 
-let _baileysRetries = 0;
-async function iniciarBaileys() {
-  if (_wppStatus === 'connecting' || _wppStatus === 'connected') return;
-  _wppStatus = 'connecting';
-  _wppError  = null;
+// Map<id, { sock, status, qr, phone, error, retries }>
+const _baileysConns = new Map();
+
+function _getConn(id) {
+  if (!_baileysConns.has(id)) _baileysConns.set(id, { sock: null, status: 'disconnected', qr: null, phone: null, error: null, retries: 0 });
+  return _baileysConns.get(id);
+}
+
+function _connSessionDir(id) {
+  if (id === 'conn_1') return WPP_SESSION_BASE; // backwards compat com sessão existente
+  return WPP_SESSION_BASE + '-' + id.replace('conn_', '');
+}
+
+function _connContaId(id) {
+  if (id === 'conn_1') return 'baileys'; // backwards compat
+  return 'baileys_' + id;
+}
+
+function _getFirstConnectedId() {
+  for (const [id, conn] of _baileysConns) {
+    if (conn.status === 'connected' && conn.sock) return id;
+  }
+  return null;
+}
+
+async function iniciarBaileys(id) {
+  id = id || 'conn_1';
+  const conn = _getConn(id);
+  if (conn.status === 'connecting' || conn.status === 'connected') return;
+  conn.status = 'connecting';
+  conn.error = null;
+  try { db.prepare(`UPDATE baileys_conexoes SET status='connecting' WHERE id=?`).run(id); } catch(e) {}
+
   try {
     const QRCode = require('qrcode');
     const baileys = await import('@whiskeysockets/baileys');
     const makeWASocket = baileys.default;
     const { useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = baileys;
 
-    if (!fs.existsSync(WPP_SESSION_DIR)) fs.mkdirSync(WPP_SESSION_DIR, { recursive: true });
-    const { state: authState, saveCreds } = await useMultiFileAuthState(WPP_SESSION_DIR);
+    const sessionDir = _connSessionDir(id);
+    if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
+    const { state: authState, saveCreds } = await useMultiFileAuthState(sessionDir);
 
-    // Buscar a versão mais recente suportada do WhatsApp Web
     let waVersion = [2, 3000, 1023169634];
     try {
       const { version } = await fetchLatestBaileysVersion();
       waVersion = version;
-      console.log('📋 WhatsApp Web versão:', version.join('.'));
-    } catch(e) {
-      console.log('⚠️  Usando versão padrão do WhatsApp Web');
-    }
+    } catch(e) {}
 
     const sock = makeWASocket({
       auth: authState,
@@ -2631,90 +2663,114 @@ async function iniciarBaileys() {
       markOnlineOnConnect: false,
       syncFullHistory: false,
     });
-    _wppSock = sock;
+    conn.sock = sock;
 
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
-        _wppStatus = 'qr';
-        _baileysRetries = 0;
-        try { _wppQR = await QRCode.toDataURL(qr); } catch(e) {}
-        console.log('📱 WhatsApp QR gerado — escaneie no app');
+        conn.status = 'qr';
+        conn.retries = 0;
+        try { conn.qr = await QRCode.toDataURL(qr); } catch(e) {}
+        try { db.prepare(`UPDATE baileys_conexoes SET status='qr' WHERE id=?`).run(id); } catch(e) {}
+        console.log(`📱 WhatsApp QR [${id}] gerado — escaneie no app`);
       }
       if (connection === 'open') {
-        _wppStatus = 'connected';
-        _wppQR = null;
-        _baileysRetries = 0;
-        console.log('✅ WhatsApp conectado:', sock.user?.id || '');
+        conn.status = 'connected';
+        conn.qr = null;
+        conn.retries = 0;
+        conn.phone = (sock.user?.id || '').split(':')[0].replace('@s.whatsapp.net', '');
+        try { db.prepare(`UPDATE baileys_conexoes SET status='connected', phone=? WHERE id=?`).run(conn.phone, id); } catch(e) {}
+        console.log(`✅ WhatsApp [${id}] conectado:`, sock.user?.id || '');
       }
       if (connection === 'close') {
         const err = lastDisconnect?.error;
         const statusCode = err?.output?.statusCode || err?.output?.payload?.statusCode;
         const reason = DisconnectReason || {};
         const loggedOut = statusCode === 401 || statusCode === reason.loggedOut;
-        console.log(`⚠️  WhatsApp desconectado — código: ${statusCode} | motivo: ${err?.message || 'desconhecido'}`);
-        _wppStatus = 'disconnected';
-        _wppError  = err ? `Desconectado: ${err.message || 'código ' + statusCode}` : null;
-        _wppQR = null;
-        _wppSock = null;
+        console.log(`⚠️  WhatsApp [${id}] desconectado — código: ${statusCode} | motivo: ${err?.message || 'desconhecido'}`);
+        conn.status = 'disconnected';
+        conn.error = err ? `Desconectado: ${err.message || 'código ' + statusCode}` : null;
+        conn.qr = null; conn.sock = null; conn.phone = null;
+        try { db.prepare(`UPDATE baileys_conexoes SET status='disconnected', phone=NULL WHERE id=?`).run(id); } catch(e) {}
         if (loggedOut) {
-          try { fs.rmSync(WPP_SESSION_DIR, { recursive: true, force: true }); } catch(e) {}
-          console.log('🔒 WhatsApp logout — sessão apagada');
-        } else if (_baileysRetries < 3) {
-          _baileysRetries++;
-          console.log(`🔄 Reconectando em 15s... (tentativa ${_baileysRetries}/3)`);
-          setTimeout(iniciarBaileys, 15000);
+          try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch(e) {}
+          console.log(`🔒 WhatsApp [${id}] logout — sessão apagada`);
+        } else if (conn.retries < 3) {
+          conn.retries++;
+          console.log(`🔄 Reconectando [${id}] em 15s... (tentativa ${conn.retries}/3)`);
+          setTimeout(() => iniciarBaileys(id), 15000);
         } else {
-          console.log('❌ Máximo de tentativas atingido. Aguarde reconexão manual.');
-          _baileysRetries = 0;
+          console.log(`❌ [${id}] Máximo de tentativas atingido.`);
+          conn.retries = 0;
         }
       }
     });
 
+    const contaId = _connContaId(id);
+
     sock.ev.on('messages.upsert', ({ messages, type }) => {
       if (type !== 'notify') return;
+      const myNumber = (sock.user?.id || '').split(':')[0].replace(/\D/g, '');
       messages.forEach(async msg => {
         if (msg.key.fromMe) return;
         const from = msg.key.remoteJid || '';
         if (from.endsWith('@g.us') || from.endsWith('@broadcast')) return;
 
-        const nome   = msg.pushName || from.replace('@s.whatsapp.net', '');
-        const numero = from.replace('@s.whatsapp.net', '');
-        const wamid  = msg.key.id || ('baileys-' + Date.now());
+        const numero = from.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+        if (myNumber && numero === myNumber) return; // Ignorar chat consigo mesmo
 
-        // Detectar tipo de mensagem
-        const imgMsg   = msg.message?.imageMessage;
-        const audioMsg = msg.message?.audioMessage;
-        const vidMsg   = msg.message?.videoMessage;
-        const text     = msg.message?.conversation
-          || msg.message?.extendedTextMessage?.text
-          || imgMsg?.caption || vidMsg?.caption || '';
+        const nome  = msg.pushName || numero;
+        const wamid = msg.key.id || ('baileys-' + Date.now());
+        const msgContent = msg.message || {};
+
+        // Ignorar mensagens de protocolo/reação (sem conteúdo para o usuário)
+        if (msgContent.reactionMessage || msgContent.protocolMessage || msgContent.senderKeyDistributionMessage) return;
+
+        const imgMsg   = msgContent.imageMessage;
+        const audioMsg = msgContent.audioMessage;
+        const vidMsg   = msgContent.videoMessage;
+        const docMsg   = msgContent.documentMessage || msgContent.documentWithCaptionMessage?.message?.documentMessage;
+        const stickerMsg = msgContent.stickerMessage;
+
+        const text = msgContent.conversation
+          || msgContent.extendedTextMessage?.text
+          || imgMsg?.caption || vidMsg?.caption || docMsg?.caption || '';
+
+        // Ignorar mensagens sem conteúdo detectável
+        if (!text && !imgMsg && !audioMsg && !vidMsg && !docMsg && !stickerMsg) return;
 
         let tipo = 'text';
         let mediaUrl = null;
 
-        // Download automático de mídia
         if (imgMsg || audioMsg || vidMsg) {
           try {
             const { downloadMediaMessage } = await import('@whiskeysockets/baileys');
             const buffer = await downloadMediaMessage(msg, 'buffer', {});
-            const ext    = imgMsg ? 'jpg' : audioMsg ? 'ogg' : 'mp4';
-            tipo         = imgMsg ? 'image' : audioMsg ? 'audio' : 'video';
-            const fname  = `baileys_${Date.now()}_${numero}.${ext}`;
-            const fpath  = path.join(UPLOAD_DIR, fname);
-            fs.writeFileSync(fpath, buffer);
+            const ext   = imgMsg ? 'jpg' : audioMsg ? 'ogg' : 'mp4';
+            tipo        = imgMsg ? 'image' : audioMsg ? 'audio' : 'video';
+            const fname = `baileys_${Date.now()}_${numero}.${ext}`;
+            fs.writeFileSync(path.join(UPLOAD_DIR, fname), buffer);
             mediaUrl = '/uploads/' + fname;
-          } catch(e) {
-            console.error('Erro ao baixar mídia Baileys:', e.message);
-          }
+          } catch(e) { console.error('Erro ao baixar mídia Baileys:', e.message); }
+        } else if (docMsg) {
+          tipo = 'document';
+          try {
+            const { downloadMediaMessage } = await import('@whiskeysockets/baileys');
+            const buffer = await downloadMediaMessage(msg, 'buffer', {});
+            const ext   = docMsg.fileName ? path.extname(docMsg.fileName) : '.bin';
+            const fname = `baileys_doc_${Date.now()}_${numero}${ext}`;
+            fs.writeFileSync(path.join(UPLOAD_DIR, fname), buffer);
+            mediaUrl = '/uploads/' + fname;
+          } catch(e) {}
         }
 
-        // Salvar no banco
+        const displayText = text || (stickerMsg ? '🎭 Sticker' : '');
+
         try {
           db.prepare(`INSERT OR IGNORE INTO wpp_mensagens (wamid,de,nome,texto,tipo,url,direcao,conta_id,lido,criado_em)
-            VALUES (?,?,?,?,?,?,'recebida','baileys',0,datetime('now','localtime'))`)
-            .run(wamid, numero, nome, text || (mediaUrl ? '' : '[mensagem]'), tipo, mediaUrl);
+            VALUES (?,?,?,?,?,?,'recebida',?,0,datetime('now','localtime'))`)
+            .run(wamid, numero, nome, displayText, tipo, mediaUrl, contaId);
         } catch(e) {}
 
         if (text) {
@@ -2724,72 +2780,148 @@ async function iniciarBaileys() {
     });
 
   } catch(e) {
-    console.error('Erro ao iniciar Baileys:', e.message);
-    _wppStatus = 'error';
-    _wppError  = e.message || 'Erro desconhecido ao iniciar WhatsApp';
-    _wppQR = null;
-    _wppSock = null;
+    console.error(`Erro ao iniciar Baileys [${id}]:`, e.message);
+    conn.status = 'error';
+    conn.error = e.message || 'Erro desconhecido';
+    conn.qr = null; conn.sock = null;
+    try { db.prepare(`UPDATE baileys_conexoes SET status='error' WHERE id=?`).run(id); } catch(e2) {}
   }
 }
 
-// Reconectar apenas se sessão já existe — não bloqueia o startup
-setImmediate(() => {
+// Auto-reconectar ao iniciar
+setImmediate(async () => {
   try {
-    if (fs.existsSync(WPP_SESSION_DIR) && fs.readdirSync(WPP_SESSION_DIR).length > 0) {
-      setTimeout(iniciarBaileys, 3000);
+    db.prepare(`INSERT OR IGNORE INTO baileys_conexoes (id, nome) VALUES ('conn_1', 'WhatsApp QR')`).run();
+    const conns = db.prepare(`SELECT id FROM baileys_conexoes`).all();
+    for (const { id } of conns) {
+      const sessionDir = _connSessionDir(id);
+      if (fs.existsSync(sessionDir) && fs.readdirSync(sessionDir).length > 0) {
+        setTimeout(() => iniciarBaileys(id), 3000);
+      }
     }
   } catch(e) {}
 });
 
-app.get('/api/wpp-qr/status', auth, (req, res) => {
-  res.json({
-    status: _wppStatus,
-    qr: _wppQR,
-    number: _wppSock?.user?.id?.split(':')[0] || null,
-    erro: _wppError || null,
-  });
+// ── WHATSAPP QR ENDPOINTS ─────────────────────────────────────────────────────
+
+// GET /api/wpp-qr/conexoes — Lista todas as conexões Baileys
+app.get('/api/wpp-qr/conexoes', auth, (req, res) => {
+  try {
+    const rows = db.prepare(`SELECT * FROM baileys_conexoes ORDER BY id`).all();
+    const result = rows.map(r => {
+      const conn = _getConn(r.id);
+      return { ...r, status: conn.status, qr: conn.qr || null, phone: conn.phone || r.phone, error: conn.error || null };
+    });
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/wpp-qr/connect', auth, requireRole('admin','gestor'), async (req, res) => {
-  if (_wppStatus === 'connected') return res.json({ ok: true, status: 'connected' });
-  if (_wppStatus === 'qr' || _wppStatus === 'connecting') return res.json({ ok: true, status: _wppStatus, qr: _wppQR });
-  await iniciarBaileys();
-  // Aguardar até 8s para QR aparecer (Baileys pode demorar um pouco no Railway)
+// POST /api/wpp-qr/conexoes — Cria nova conexão Baileys
+app.post('/api/wpp-qr/conexoes', auth, requireRole('admin','gestor'), (req, res) => {
+  try {
+    const nome = (req.body.nome || 'WhatsApp QR').slice(0, 50);
+    const existing = db.prepare(`SELECT id FROM baileys_conexoes ORDER BY id`).all();
+    let nextN = 1;
+    while (existing.find(r => r.id === 'conn_' + nextN)) nextN++;
+    const id = 'conn_' + nextN;
+    db.prepare(`INSERT INTO baileys_conexoes (id, nome) VALUES (?, ?)`).run(id, nome);
+    res.json({ ok: true, id, nome });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/wpp-qr/conexoes/:id — Remove uma conexão Baileys
+app.delete('/api/wpp-qr/conexoes/:id', auth, requireRole('admin','gestor'), async (req, res) => {
+  const id = req.params.id;
+  if (id === 'conn_1') return res.status(400).json({ error: 'Não é possível remover a conexão principal' });
+  try {
+    const conn = _getConn(id);
+    try { if (conn.sock) await conn.sock.logout(); } catch(e) {}
+    conn.sock = null;
+    const sessionDir = _connSessionDir(id);
+    try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch(e) {}
+    db.prepare(`DELETE FROM baileys_conexoes WHERE id=?`).run(id);
+    _baileysConns.delete(id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/wpp-qr/conexoes/:id/connect — Conectar uma conexão específica
+app.post('/api/wpp-qr/conexoes/:id/connect', auth, requireRole('admin','gestor'), async (req, res) => {
+  const id = req.params.id;
+  const conn = _getConn(id);
+  if (conn.status === 'connected') return res.json({ ok: true, status: 'connected', phone: conn.phone });
+  if (conn.status === 'qr' || conn.status === 'connecting') return res.json({ ok: true, status: conn.status, qr: conn.qr });
+  await iniciarBaileys(id);
   for (let i = 0; i < 16; i++) {
     await new Promise(r => setTimeout(r, 500));
-    if (_wppQR || _wppStatus === 'connected' || _wppStatus === 'error') break;
+    if (conn.qr || conn.status === 'connected' || conn.status === 'error') break;
   }
-  res.json({ ok: true, status: _wppStatus, qr: _wppQR, erro: _wppError });
+  res.json({ ok: true, status: conn.status, qr: conn.qr, erro: conn.error, phone: conn.phone });
 });
 
-app.post('/api/wpp-qr/disconnect', auth, requireRole('admin','gestor'), async (req, res) => {
-  try {
-    if (_wppSock) await _wppSock.logout();
-  } catch(e) {}
-  _wppSock = null; _wppQR = null; _wppStatus = 'disconnected';
-  try { fs.rmSync(WPP_SESSION_DIR, { recursive: true, force: true }); } catch(e) {}
+// POST /api/wpp-qr/conexoes/:id/disconnect — Desconectar uma conexão específica
+app.post('/api/wpp-qr/conexoes/:id/disconnect', auth, requireRole('admin','gestor'), async (req, res) => {
+  const id = req.params.id;
+  const conn = _getConn(id);
+  try { if (conn.sock) await conn.sock.logout(); } catch(e) {}
+  conn.sock = null; conn.qr = null; conn.status = 'disconnected'; conn.phone = null;
+  try { db.prepare(`UPDATE baileys_conexoes SET status='disconnected', phone=NULL WHERE id=?`).run(id); } catch(e) {}
+  const sessionDir = _connSessionDir(id);
+  try { fs.rmSync(sessionDir, { recursive: true, force: true }); } catch(e) {}
   res.json({ ok: true });
 });
 
+// GET /api/wpp-qr/status — Backwards compat (conn_1)
+app.get('/api/wpp-qr/status', auth, (req, res) => {
+  const conn = _getConn('conn_1');
+  res.json({ status: conn.status, qr: conn.qr, number: conn.phone, erro: conn.error });
+});
+
+// POST /api/wpp-qr/connect — Backwards compat (conn_1)
+app.post('/api/wpp-qr/connect', auth, requireRole('admin','gestor'), async (req, res) => {
+  const conn = _getConn('conn_1');
+  if (conn.status === 'connected') return res.json({ ok: true, status: 'connected' });
+  if (conn.status === 'qr' || conn.status === 'connecting') return res.json({ ok: true, status: conn.status, qr: conn.qr });
+  await iniciarBaileys('conn_1');
+  for (let i = 0; i < 16; i++) {
+    await new Promise(r => setTimeout(r, 500));
+    if (conn.qr || conn.status === 'connected' || conn.status === 'error') break;
+  }
+  res.json({ ok: true, status: conn.status, qr: conn.qr, erro: conn.error });
+});
+
+// POST /api/wpp-qr/disconnect — Backwards compat (conn_1)
+app.post('/api/wpp-qr/disconnect', auth, requireRole('admin','gestor'), async (req, res) => {
+  const conn = _getConn('conn_1');
+  try { if (conn.sock) await conn.sock.logout(); } catch(e) {}
+  conn.sock = null; conn.qr = null; conn.status = 'disconnected'; conn.phone = null;
+  try { db.prepare(`UPDATE baileys_conexoes SET status='disconnected', phone=NULL WHERE id='conn_1'`).run(); } catch(e) {}
+  try { fs.rmSync(WPP_SESSION_BASE, { recursive: true, force: true }); } catch(e) {}
+  res.json({ ok: true });
+});
+
+// POST /api/wpp-qr/send — Enviar texto (usa conexão especificada ou a primeira conectada)
 app.post('/api/wpp-qr/send', auth, async (req, res) => {
-  const { numero, mensagem } = req.body;
+  const { numero, mensagem, conexaoId } = req.body;
   if (!numero || !mensagem) return res.status(400).json({ error: 'numero e mensagem obrigatorios' });
-  if (_wppStatus !== 'connected' || !_wppSock) return res.status(503).json({ error: 'WhatsApp não conectado' });
+  const connId = conexaoId || _getFirstConnectedId();
+  if (!connId) return res.status(503).json({ error: 'WhatsApp não conectado' });
+  const conn = _getConn(connId);
+  if (conn.status !== 'connected' || !conn.sock) return res.status(503).json({ error: 'WhatsApp não conectado' });
   try {
     const num = numero.replace(/\D/g,'');
-    const jid = num + '@s.whatsapp.net';
-    await _wppSock.sendMessage(jid, { text: mensagem });
-    // Salvar mensagem enviada no banco
+    await conn.sock.sendMessage(num + '@s.whatsapp.net', { text: mensagem });
+    const contaId = _connContaId(connId);
     try {
       db.prepare(`INSERT INTO wpp_mensagens (wamid,de,nome,texto,tipo,direcao,conta_id,lido,criado_em)
-        VALUES (?,?,?,?,'text','enviada','baileys',1,datetime('now','localtime'))`)
-        .run('sent-' + Date.now(), num, 'Eu', mensagem);
+        VALUES (?,?,?,?,'text','enviada',?,1,datetime('now','localtime'))`)
+        .run('sent-' + Date.now(), num, 'Eu', mensagem, contaId);
     } catch(e) {}
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/wpp-qr/conversations — Lista conversas do WhatsApp QR (Baileys)
+// GET /api/wpp-qr/conversations — Lista conversas de todas as conexões Baileys
 app.get('/api/wpp-qr/conversations', auth, (req, res) => {
   try {
     const rows = db.prepare(`
@@ -2797,9 +2929,9 @@ app.get('/api/wpp-qr/conversations', auth, (req, res) => {
              MAX(CASE WHEN direcao='recebida' THEN nome ELSE NULL END) as nome,
              MAX(criado_em) as ultima,
              SUM(CASE WHEN lido=0 AND direcao='recebida' THEN 1 ELSE 0 END) as nao_lidas,
-             (SELECT texto FROM wpp_mensagens m2 WHERE m2.de=m.de AND m2.conta_id='baileys' ORDER BY m2.criado_em DESC LIMIT 1) as ultima_msg
+             (SELECT texto FROM wpp_mensagens m2 WHERE m2.de=m.de AND m2.conta_id LIKE 'baileys%' ORDER BY m2.criado_em DESC LIMIT 1) as ultima_msg
       FROM wpp_mensagens m
-      WHERE conta_id='baileys'
+      WHERE conta_id LIKE 'baileys%'
       GROUP BY de
       ORDER BY ultima DESC
     `).all();
@@ -2811,8 +2943,8 @@ app.get('/api/wpp-qr/conversations', auth, (req, res) => {
 app.get('/api/wpp-qr/messages/:numero', auth, (req, res) => {
   try {
     const num = req.params.numero.replace(/\D/g,'');
-    const msgs = db.prepare(`SELECT * FROM wpp_mensagens WHERE de=? AND conta_id='baileys' ORDER BY criado_em ASC`).all(num);
-    db.prepare(`UPDATE wpp_mensagens SET lido=1 WHERE de=? AND conta_id='baileys' AND direcao='recebida'`).run(num);
+    const msgs = db.prepare(`SELECT * FROM wpp_mensagens WHERE de=? AND conta_id LIKE 'baileys%' ORDER BY criado_em ASC`).all(num);
+    db.prepare(`UPDATE wpp_mensagens SET lido=1 WHERE de=? AND conta_id LIKE 'baileys%' AND direcao='recebida'`).run(num);
     res.json(msgs);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2825,7 +2957,10 @@ app.post('/api/wpp-qr/send-media', auth, (req, res, next) => {
     next();
   });
 }, async (req, res) => {
-  if (_wppStatus !== 'connected' || !_wppSock) return res.status(503).json({ error: 'WhatsApp não conectado' });
+  const connId = req.body.conexaoId || _getFirstConnectedId();
+  if (!connId) return res.status(503).json({ error: 'WhatsApp não conectado' });
+  const conn = _getConn(connId);
+  if (conn.status !== 'connected' || !conn.sock) return res.status(503).json({ error: 'WhatsApp não conectado' });
   const { numero } = req.body;
   if (!numero || !req.file) return res.status(400).json({ error: 'numero e arquivo obrigatórios' });
   try {
@@ -2834,7 +2969,6 @@ app.post('/api/wpp-qr/send-media', auth, (req, res, next) => {
     const mime   = req.file.mimetype || '';
     const buffer = fs.readFileSync(req.file.path);
     const url    = '/uploads/' + req.file.filename;
-
     let msgPayload;
     if (mime.startsWith('image/')) {
       msgPayload = { image: buffer, caption: req.body.caption || '' };
@@ -2843,48 +2977,35 @@ app.post('/api/wpp-qr/send-media', auth, (req, res, next) => {
     } else {
       msgPayload = { document: buffer, mimetype: mime, fileName: req.file.originalname };
     }
-
-    await _wppSock.sendMessage(jid, msgPayload);
-
-    // Salvar no banco
+    await conn.sock.sendMessage(jid, msgPayload);
+    const contaId = _connContaId(connId);
     const tipo = mime.startsWith('image/') ? 'image' : mime.startsWith('audio/') ? 'audio' : 'document';
     db.prepare(`INSERT INTO wpp_mensagens (wamid,de,nome,texto,tipo,url,direcao,conta_id,lido,criado_em)
-      VALUES (?,?,?,?,?,?,'enviada','baileys',1,datetime('now','localtime'))`)
-      .run('sent-media-' + Date.now(), num, 'Eu', req.body.caption || '', tipo, url);
-
+      VALUES (?,?,?,?,?,?,'enviada',?,1,datetime('now','localtime'))`)
+      .run('sent-media-' + Date.now(), num, 'Eu', req.body.caption || '', tipo, url, contaId);
     res.json({ ok: true, url });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // POST /api/wpp-qr/send-video — Enviar vídeo como visualização única
 app.post('/api/wpp-qr/send-video', auth, async (req, res) => {
-  const { numero, videoId, caption, viewOnce } = req.body;
+  const { numero, videoId, caption, viewOnce, conexaoId } = req.body;
   if (!numero || !videoId) return res.status(400).json({ error: 'numero e videoId obrigatórios' });
-  if (_wppStatus !== 'connected' || !_wppSock) {
-    return res.status(503).json({ error: 'WhatsApp não conectado. Conecte primeiro na aba Conexões → WhatsApp QR.' });
-  }
+  const connId = conexaoId || _getFirstConnectedId();
+  if (!connId) return res.status(503).json({ error: 'WhatsApp não conectado. Conecte primeiro na aba Conexões → WhatsApp QR.' });
+  const conn = _getConn(connId);
+  if (conn.status !== 'connected' || !conn.sock) return res.status(503).json({ error: 'WhatsApp não conectado.' });
   try {
     const video = db.prepare('SELECT * FROM videos WHERE id=?').get(+videoId);
     if (!video || !video.url) return res.status(404).json({ error: 'Vídeo não encontrado' });
-
     const videoPath = path.join(__dirname, video.url.startsWith('/') ? video.url.slice(1) : video.url);
     if (!fs.existsSync(videoPath)) return res.status(404).json({ error: 'Arquivo não encontrado no servidor' });
-
     const jid = numero.replace(/\D/g,'') + '@s.whatsapp.net';
     const videoBuffer = fs.readFileSync(videoPath);
-
-    await _wppSock.sendMessage(jid, {
-      video: videoBuffer,
-      viewOnce: viewOnce !== false,
-      caption: caption || '',
-      mimetype: 'video/mp4',
-    });
-
+    await conn.sock.sendMessage(jid, { video: videoBuffer, viewOnce: viewOnce !== false, caption: caption || '', mimetype: 'video/mp4' });
     db.prepare("UPDATE videos SET status='ENVIADO' WHERE id=?").run(+videoId);
     res.json({ ok: true });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Site institucional LS International (servir pasta inteira) ──────────────
